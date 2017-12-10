@@ -41,4 +41,5 @@ dependencies {
     compile('com.github.afollestad.material-dialogs:core:0.8.5.4@aar') {
         transitive = true
     }
+    compile 'com.itextpdf:itextg:5.5.9'
 }

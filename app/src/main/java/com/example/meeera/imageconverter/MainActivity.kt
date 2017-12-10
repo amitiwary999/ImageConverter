@@ -3,15 +3,25 @@ package com.example.meeera.imageconverter
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.AsyncTask
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Environment
+import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.widget.Toast
 import com.afollestad.materialdialogs.MaterialDialog
 import com.gun0912.tedpicker.ImagePickerActivity
+import com.itextpdf.text.Document
+import com.itextpdf.text.Image
+import com.itextpdf.text.PageSize
+import com.itextpdf.text.pdf.PdfWriter
 import kotlinx.android.synthetic.main.activity_main.*
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : AppCompatActivity() {
 
@@ -93,7 +103,40 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun doInBackground(vararg params: String?): String {
-            var path : String = ""
+            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+            var folder = File(path)
+            if(!folder.exists()){
+                var success = folder.mkdir()
+                if(!success){
+                    Toast.makeText(MainActivity().context, " ", Toast.LENGTH_SHORT).show()
+                    return ""
+                }
+            }
+            path = path + MainActivity().fileName + ".pdf"
+
+            var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+            var documentRect = document.pageSize
+            var writer = PdfWriter.getInstance(document, FileOutputStream(path))
+            document.open()
+            for(i in 0..MainActivity().imageUri.size){
+                var bmp = MediaStore.Images.Media.getBitmap(MainActivity().context.contentResolver,
+                        Uri.fromFile(File(MainActivity().imageUri.get(i))))
+                bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
+                var image = Image.getInstance(MainActivity().imageUri.get(i))
+                if(bmp.width>documentRect.width || bmp.height > documentRect.height){
+                    image.scaleAbsolute(documentRect.width, documentRect.height)
+                } else {
+                    image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
+                }
+                image.setAbsolutePosition((documentRect.width - image.scaledWidth)/2, (documentRect.height-image.scaledHeight)/2)
+                image.border = Image.BOX
+                image.borderWidth = 15f
+                document.add(image)
+                document.newPage()
+            }
+            document.close()
+            MainActivity().imageUri.clear()
+            MainActivity().tempUri.clear()
             return  ""
         }
 
