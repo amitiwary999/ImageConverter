@@ -30,11 +30,9 @@ class MainActivity : AppCompatActivity() {
     var tempUri : ArrayList<String> = ArrayList()
     var imageUri : ArrayList<String> = ArrayList()
     var fileName : String = ""
-    var context : Context = this
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        context = baseContext
         select.setOnClickListener({
             selectImage()
         })
@@ -65,7 +63,7 @@ class MainActivity : AppCompatActivity() {
      MaterialDialog.Builder(this)
              .title("Creating Pdf")
              .content("Enter File name")
-             .input("Example : test", null, MaterialDialog.InputCallback { dialog, input ->
+             .input("Example : test", null, MaterialDialog.InputCallback { _, input ->
                  if(input == null || input.toString().trim().equals("")){
                      Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
                  }else{
@@ -82,7 +80,7 @@ class MainActivity : AppCompatActivity() {
             tempUri.clear()
             var imageUri: ArrayList<Uri> = data.getParcelableArrayListExtra(ImagePickerActivity.EXTRA_IMAGE_URIS)
             for (i in imageUri.indices) {
-                tempUri.add(imageUri.get(i).getPath())
+                tempUri.add(imageUri[i].path)
             }
             Toast.makeText(this, "Image Added", Toast.LENGTH_SHORT).show()
         }
