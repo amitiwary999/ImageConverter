@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
             selectImage()
         })
         pdf.setOnClickListener({
-
+            createPdf()
         })
     }
 
@@ -68,6 +68,7 @@ class MainActivity : AppCompatActivity() {
                      Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
                  }else{
                      fileName = input.toString()
+                     CreatingPdf().execute()
                  }
              }).show()
     }
