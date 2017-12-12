@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import com.afollestad.materialdialogs.MaterialDialog
 import com.gun0912.tedpicker.ImagePickerActivity
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        context = baseContext
         select.setOnClickListener({
             selectImage()
         })
@@ -68,7 +70,8 @@ class MainActivity : AppCompatActivity() {
                      Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
                  }else{
                      fileName = input.toString()
-                     CreatingPdf().execute()
+                     Log.d("amituri", "amit"+imageUri.size)
+                     CreatingPdf(this, fileName, imageUri).execute()
                  }
              }).show()
     }
@@ -81,12 +84,15 @@ class MainActivity : AppCompatActivity() {
             for (i in imageUri.indices) {
                 tempUri.add(imageUri.get(i).getPath())
             }
+            Toast.makeText(this, "Image Added", Toast.LENGTH_SHORT).show()
         }
-        Toast.makeText(this, "Image Added", Toast.LENGTH_SHORT).show()
     }
 
-    class CreatingPdf : AsyncTask<String, String, String>() {
-        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(MainActivity().context)
+    class CreatingPdf(context: Activity, fileName:String, imageUri:ArrayList<String>) : AsyncTask<String, String, String>() {
+        var context1 : Context = context.baseContext
+        var fileName : String = fileName
+        var imageUri : ArrayList<String> = imageUri
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(context)
                 .title("please wait")
                 .content("Creating File")
                 .cancelable(false)
@@ -100,6 +106,8 @@ class MainActivity : AppCompatActivity() {
 
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
+            MainActivity().imageUri.clear()
+            MainActivity().tempUri.clear()
             dialog.dismiss()
         }
 
@@ -109,35 +117,38 @@ class MainActivity : AppCompatActivity() {
             if(!folder.exists()){
                 var success = folder.mkdir()
                 if(!success){
-                    Toast.makeText(MainActivity().context, " ", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context1, " ", Toast.LENGTH_SHORT).show()
                     return ""
                 }
             }
-            path = path + MainActivity().fileName + ".pdf"
+            path = path + fileName + ".pdf"
 
             var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
             var documentRect = document.pageSize
             var writer = PdfWriter.getInstance(document, FileOutputStream(path))
             document.open()
-            for(i in 0..MainActivity().imageUri.size){
-                var bmp = MediaStore.Images.Media.getBitmap(MainActivity().context.contentResolver,
-                        Uri.fromFile(File(MainActivity().imageUri.get(i))))
-                bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
-                var image = Image.getInstance(MainActivity().imageUri.get(i))
-                if(bmp.width>documentRect.width || bmp.height > documentRect.height){
-                    image.scaleAbsolute(documentRect.width, documentRect.height)
-                } else {
-                    image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
+            try {
+                for (i in 0 until imageUri.size ) {
+                    var bmp = MediaStore.Images.Media.getBitmap(context1.contentResolver,
+                            Uri.fromFile(File(imageUri[i])))
+                    bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
+                    var image = Image.getInstance(imageUri[i])
+                    if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
+                        image.scaleAbsolute(documentRect.width, documentRect.height)
+                    } else {
+                        image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
+                    }
+                    image.setAbsolutePosition((documentRect.width - image.scaledWidth) / 2, (documentRect.height - image.scaledHeight) / 2)
+                    image.border = Image.BOX
+                    image.borderWidth = 15f
+                    document.add(image)
+                    document.newPage()
                 }
-                image.setAbsolutePosition((documentRect.width - image.scaledWidth)/2, (documentRect.height-image.scaledHeight)/2)
-                image.border = Image.BOX
-                image.borderWidth = 15f
-                document.add(image)
-                document.newPage()
+                document.close()
+            } catch (e:Exception){
+                e.printStackTrace()
+                document.close()
             }
-            document.close()
-            MainActivity().imageUri.clear()
-            MainActivity().tempUri.clear()
             return  ""
         }
 
