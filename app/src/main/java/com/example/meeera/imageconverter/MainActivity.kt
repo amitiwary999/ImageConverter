@@ -1,16 +1,22 @@
 package com.example.meeera.imageconverter
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.AsyncTask
+import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
-import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
+import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.widget.Toast
 import com.afollestad.materialdialogs.MaterialDialog
@@ -27,6 +33,7 @@ import java.io.FileOutputStream
 class MainActivity : AppCompatActivity() {
 
     private val INTENT_REQUEST_GET_IMAGES = 11
+    val REQUEST_ID_MULTIPLE_PERMISSIONS = 1
     var tempUri : ArrayList<String> = ArrayList()
     var imageUri : ArrayList<String> = ArrayList()
     var fileName : String = ""
@@ -42,13 +49,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun selectImage(){
-        var intent = Intent(this, ImagePickerActivity::class.java)
-        var uri : ArrayList<Uri> = ArrayList(tempUri.size)
-        for (stringUri in tempUri){
-            uri.add(Uri.fromFile(File(stringUri)))
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                var permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
+                var permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                var permissionCamera = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.CAMERA)
+                var listPermissionNeeded : ArrayList<String> = ArrayList<String>()
+                if(permissionWriteStorage != PackageManager.PERMISSION_GRANTED){
+                    listPermissionNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+                if(permissionReadStorage != PackageManager.PERMISSION_GRANTED){
+                    listPermissionNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                }
+                if(permissionCamera != PackageManager.PERMISSION_GRANTED){
+                    listPermissionNeeded.add(Manifest.permission.CAMERA)
+                }
+                if(!listPermissionNeeded.isEmpty()){
+                    ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS)
+                } else{
+                var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+                for (stringUri in tempUri) {
+                    uri.add(Uri.fromFile(File(stringUri)))
+                }
+                intent.putExtra(ImagePickerActivity.EXTRA_IMAGE_URIS, uri)
+                startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
+            }
+        } else {
+            var intent = Intent(this, ImagePickerActivity::class.java)
+            var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+            for (stringUri in tempUri) {
+                uri.add(Uri.fromFile(File(stringUri)))
+            }
+            intent.putExtra(ImagePickerActivity.EXTRA_IMAGE_URIS, uri)
+            startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
         }
-        intent.putExtra(ImagePickerActivity.EXTRA_IMAGE_URIS, uri)
-        startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
+
     }
 
     fun createPdf(){
@@ -86,6 +120,59 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when(requestCode){
+            REQUEST_ID_MULTIPLE_PERMISSIONS ->{
+                val perms: HashMap<String, Int> = HashMap()
+                perms.put(Manifest.permission.READ_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
+                perms.put(Manifest.permission.WRITE_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
+                perms.put(Manifest.permission.RECORD_AUDIO, PackageManager.PERMISSION_GRANTED)
+                if (grantResults.size > 0) {
+                    if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+                            perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+                            perms.get(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                        var intent = Intent(this, ImagePickerActivity::class.java)
+                        var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+                        for (stringUri in tempUri) {
+                            uri.add(Uri.fromFile(File(stringUri)))
+                        }
+                        intent.putExtra(ImagePickerActivity.EXTRA_IMAGE_URIS, uri)
+                        startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
+                    } else {
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
+                                ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO)) {
+                            showDialogOK(" Read and write external storage and camera permission needed", DialogInterface.OnClickListener { _, which ->
+                                when (which) {
+                                    DialogInterface.BUTTON_POSITIVE -> {
+                                        selectImage()
+                                    }
+
+                                    DialogInterface.BUTTON_NEGATIVE -> {
+                                        Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
+                                        finish()
+                                    }
+                                }
+                            })
+                        } else {
+                            Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun showDialogOK(message : String, okListener : DialogInterface.OnClickListener) {
+        AlertDialog.Builder(this)
+                .setMessage(message)
+                .setPositiveButton("OK", okListener)
+                .setNegativeButton("Cancel", okListener)
+                .create()
+                .show()
+    }
+    
     class CreatingPdf(context: Activity, fileName:String, imageUri:ArrayList<String>) : AsyncTask<String, String, String>() {
         var context1 : Context = context.baseContext
         var fileName : String = fileName
