@@ -24,19 +24,28 @@ import com.gun0912.tedpicker.ImagePickerActivity
 import com.itextpdf.text.Document
 import com.itextpdf.text.Image
 import com.itextpdf.text.PageSize
+import com.itextpdf.text.Paragraph
 import com.itextpdf.text.pdf.PdfWriter
+import com.vincent.filepicker.Constant
+import com.vincent.filepicker.activity.NormalFilePickActivity
+import com.vincent.filepicker.filter.entity.NormalFile
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import org.apache.commons.io.FileUtils
 
 class MainActivity : AppCompatActivity() {
 
     private val INTENT_REQUEST_GET_IMAGES = 11
+    val REQUEST_GET_DOC = 2
     val REQUEST_ID_MULTIPLE_PERMISSIONS = 1
     var tempUri : ArrayList<String> = ArrayList()
+    var tempDocUri : ArrayList<String> = ArrayList()
+    var docUri : ArrayList<String> = ArrayList()
     var imageUri : ArrayList<String> = ArrayList()
     var fileName : String = ""
+    var docFilePath : String ?= null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -44,7 +53,13 @@ class MainActivity : AppCompatActivity() {
             selectImage()
         })
         pdf.setOnClickListener({
-            createPdf()
+            createImagePdf()
+        })
+        doc.setOnClickListener({
+            selectDoc()
+        })
+        docpdf.setOnClickListener({
+            createDocPdf()
         })
     }
 
@@ -85,7 +100,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    fun createPdf(){
+    fun createImagePdf(){
         if(imageUri.size == 0){
             if(tempUri.size == 0){
                 Toast.makeText(this, "No images selected", Toast.LENGTH_LONG).show()
@@ -108,6 +123,35 @@ class MainActivity : AppCompatActivity() {
              }).show()
     }
 
+    fun selectDoc(){
+        var intent = Intent(this, NormalFilePickActivity::class.java)
+        intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
+        startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
+       /* var intent = Intent()
+        intent.setType("application/msword")
+        intent.setAction(Intent.ACTION_GET_CONTENT)
+        startActivityForResult(Intent.createChooser(intent, "Select doc"), REQUEST_GET_DOC )*/
+    }
+
+    fun createDocPdf(){
+        if(tempDocUri.size == 0) {
+            Toast.makeText(this, "No doc selected", Toast.LENGTH_LONG).show()
+        }else{
+            docUri = tempDocUri.clone() as ArrayList<String>
+            MaterialDialog.Builder(this)
+                    .title("Creating Pdf")
+                    .content("Enter File name")
+                    .input("Example : test", null, MaterialDialog.InputCallback { _, input ->
+                        if (input == null || input.toString().trim().equals("")) {
+                            Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
+                        } else {
+                            fileName = input.toString()
+                            CreatingDocPdf(this, fileName, docUri).execute()
+                        }
+                    }).show()
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
         super.onActivityResult(requestCode, resultCode, data)
         if(requestCode == INTENT_REQUEST_GET_IMAGES && resultCode == Activity.RESULT_OK) {
@@ -117,6 +161,14 @@ class MainActivity : AppCompatActivity() {
                 tempUri.add(imageUri[i].path)
             }
             Toast.makeText(this, "Image Added", Toast.LENGTH_SHORT).show()
+        }
+
+        if(requestCode == Constant.REQUEST_CODE_PICK_FILE && resultCode == Activity.RESULT_OK){
+            var list : ArrayList<NormalFile> = data.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE)
+            for(i in list.indices){
+                tempDocUri.add(list[i].path)
+            }
+            Toast.makeText(this, "Doc Added", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -172,7 +224,7 @@ class MainActivity : AppCompatActivity() {
                 .create()
                 .show()
     }
-    
+
     class CreatingPdf(context: Activity, fileName:String, imageUri:ArrayList<String>) : AsyncTask<String, String, String>() {
         var context1 : Context = context.baseContext
         var fileName : String = fileName
@@ -236,6 +288,46 @@ class MainActivity : AppCompatActivity() {
             }
             return  ""
         }
+    }
 
+    class CreatingDocPdf(context: Activity, fileName:String, docUri:ArrayList<String>) : AsyncTask<String, String, String>() {
+        var context1 : Context = context.baseContext
+        var fileName : String = fileName
+        var imageUri : ArrayList<String> = docUri
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(context)
+                .title("please wait")
+                .content("Creating File")
+                .cancelable(false)
+                .progress(true, 0)
+        var dialog : MaterialDialog = builder.build()
+
+        override fun onPreExecute() {
+            super.onPreExecute()
+            dialog.show()
+        }
+
+        override fun doInBackground(vararg params: String?): String {
+            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+            path = path + fileName + ".pdf"
+            var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+            var writer = PdfWriter.getInstance(document, FileOutputStream(path))
+            document.open()
+            try {
+                for(i in 0 until imageUri.size){
+                    document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]))))
+                    document.newPage()
+                }
+                document.close()
+            }catch(e : Exception){
+                e.printStackTrace()
+                document.close()
+            }
+            return ""
+        }
+
+        override fun onPostExecute(result: String?) {
+            super.onPostExecute(result)
+            dialog.dismiss()
+        }
     }
 }

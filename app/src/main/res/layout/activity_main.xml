@@ -25,4 +25,11 @@
         android:layout_height="50dp"
         android:layout_below="@id/pdf"
         android:text="create doc"/>
+
+    <Button
+        android:id="@+id/docpdf"
+        android:layout_width="200dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/doc"
+        android:text="create doc pdf"/>
 </RelativeLayout>
