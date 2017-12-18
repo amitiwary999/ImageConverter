@@ -175,11 +175,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if(requestCode == INTENT_REQUEST_GET_IMAGES && resultCode == Activity.RESULT_OK) {
             tempUri.clear()
-            var imageUri: ArrayList<Uri> = data.getParcelableArrayListExtra(ImagePickerActivity.EXTRA_IMAGE_URIS)
+            var imageUri: ArrayList<Uri> = data!!.getParcelableArrayListExtra(ImagePickerActivity.EXTRA_IMAGE_URIS)
             for (i in imageUri.indices) {
                 tempUri.add(imageUri[i].path)
             }
@@ -187,7 +187,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if(requestCode == Constant.REQUEST_CODE_PICK_FILE && resultCode == Activity.RESULT_OK){
-            var list : ArrayList<NormalFile> = data.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE)
+            var list : ArrayList<NormalFile> = data!!.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE)
             for(i in list.indices){
                 tempDocUri.add(list[i].path)
             }
