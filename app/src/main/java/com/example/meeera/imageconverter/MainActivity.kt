@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private val INTENT_REQUEST_GET_IMAGES = 11
     val REQUEST_GET_DOC = 2
     val REQUEST_ID_MULTIPLE_PERMISSIONS = 1
+    val REQUEST_ID_MULTIPLE_PERMISSIONS1 = 2
     var tempUri : ArrayList<String> = ArrayList()
     var tempDocUri : ArrayList<String> = ArrayList()
     var docUri : ArrayList<String> = ArrayList()
@@ -124,9 +125,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun selectDoc(){
-        var intent = Intent(this, NormalFilePickActivity::class.java)
-        intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
-        startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            var permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
+            var permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+            var listPermissionNeeded: ArrayList<String> = ArrayList<String>()
+            if (permissionWriteStorage != PackageManager.PERMISSION_GRANTED) {
+                listPermissionNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+            if (permissionReadStorage != PackageManager.PERMISSION_GRANTED) {
+                listPermissionNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+
+            if (!listPermissionNeeded.isEmpty()) {
+                ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS1)
+            } else {
+                var intent = Intent(this, NormalFilePickActivity::class.java)
+                intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
+                startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
+            }
+        } else {
+            var intent = Intent(this, NormalFilePickActivity::class.java)
+            intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
+            startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
+        }
        /* var intent = Intent()
         intent.setType("application/msword")
         intent.setAction(Intent.ACTION_GET_CONTENT)
@@ -146,6 +168,7 @@ class MainActivity : AppCompatActivity() {
                             Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
                         } else {
                             fileName = input.toString()
+                            Log.d("docsize", "size "+docUri.size)
                             CreatingDocPdf(this, fileName, docUri).execute()
                         }
                     }).show()
@@ -179,11 +202,11 @@ class MainActivity : AppCompatActivity() {
                 val perms: HashMap<String, Int> = HashMap()
                 perms.put(Manifest.permission.READ_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
                 perms.put(Manifest.permission.WRITE_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
-                perms.put(Manifest.permission.RECORD_AUDIO, PackageManager.PERMISSION_GRANTED)
+                perms.put(Manifest.permission.CAMERA, PackageManager.PERMISSION_GRANTED)
                 if (grantResults.size > 0) {
                     if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
                             perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
-                            perms.get(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            perms.get(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                         var intent = Intent(this, ImagePickerActivity::class.java)
                         var uri: ArrayList<Uri> = ArrayList(tempUri.size)
                         for (stringUri in tempUri) {
@@ -193,7 +216,7 @@ class MainActivity : AppCompatActivity() {
                         startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
                     } else {
                         if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
-                                ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO)) {
+                                ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
                             showDialogOK(" Read and write external storage and camera permission needed", DialogInterface.OnClickListener { _, which ->
                                 when (which) {
                                     DialogInterface.BUTTON_POSITIVE -> {
@@ -202,13 +225,43 @@ class MainActivity : AppCompatActivity() {
 
                                     DialogInterface.BUTTON_NEGATIVE -> {
                                         Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
-                                        finish()
                                     }
                                 }
                             })
                         } else {
                             Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
-                            finish()
+                        }
+                    }
+                }
+            }
+            REQUEST_ID_MULTIPLE_PERMISSIONS1 ->{
+                val perms: HashMap<String, Int> = HashMap()
+                perms.put(Manifest.permission.READ_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
+                perms.put(Manifest.permission.WRITE_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
+                perms.put(Manifest.permission.CAMERA, PackageManager.PERMISSION_GRANTED)
+                if (grantResults.size > 0) {
+                    if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+                            perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+                            perms.get(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        var intent = Intent(this, NormalFilePickActivity::class.java)
+                        intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
+                        startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
+                    } else {
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
+                                ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+                            showDialogOK(" Read and write external storage and camera permission needed", DialogInterface.OnClickListener { _, which ->
+                                when (which) {
+                                    DialogInterface.BUTTON_POSITIVE -> {
+                                        selectDoc()
+                                    }
+
+                                    DialogInterface.BUTTON_NEGATIVE -> {
+                                        Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            })
+                        } else {
+                            Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -314,7 +367,7 @@ class MainActivity : AppCompatActivity() {
             document.open()
             try {
                 for(i in 0 until imageUri.size){
-                    document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]))))
+                    document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]), "UTF-8")))
                     document.newPage()
                 }
                 document.close()
@@ -327,6 +380,8 @@ class MainActivity : AppCompatActivity() {
 
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
+            MainActivity().docUri.clear()
+            MainActivity().tempDocUri.clear()
             dialog.dismiss()
         }
     }
