@@ -6,7 +6,8 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
+import android.graphics.*
+import android.media.ExifInterface
 import android.net.Uri
 import android.os.AsyncTask
 import android.os.Build
@@ -34,6 +35,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import org.apache.commons.io.FileUtils
+import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
 
@@ -80,9 +82,11 @@ class MainActivity : AppCompatActivity() {
                     listPermissionNeeded.add(Manifest.permission.CAMERA)
                 }
                 if(!listPermissionNeeded.isEmpty()){
+                    Log.d("create2", "size "+tempUri.size)
                     ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS)
                 } else{
                 var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+                    Log.d("create", "size "+tempUri.size)
                 for (stringUri in tempUri) {
                     uri.add(Uri.fromFile(File(stringUri)))
                 }
@@ -183,6 +187,7 @@ class MainActivity : AppCompatActivity() {
             for (i in imageUri.indices) {
                 tempUri.add(imageUri[i].path)
             }
+            Log.d("result","size "+tempUri.size)
             Toast.makeText(this, "Image Added", Toast.LENGTH_SHORT).show()
         }
 
@@ -214,9 +219,11 @@ class MainActivity : AppCompatActivity() {
                         }
                         intent.putExtra(ImagePickerActivity.EXTRA_IMAGE_URIS, uri)
                         startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
+                        Log.d("permission", "size "+MainActivity().tempUri.size)
                     } else {
                         if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
                                 ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+                            Log.d("permission2", "size "+MainActivity().tempUri.size)
                             showDialogOK(" Read and write external storage and camera permission needed", DialogInterface.OnClickListener { _, which ->
                                 when (which) {
                                     DialogInterface.BUTTON_POSITIVE -> {
@@ -296,8 +303,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
+            Log.d("post execute2", "size "+MainActivity().tempUri.size)
             MainActivity().imageUri.clear()
             MainActivity().tempUri.clear()
+            Log.d("post execute", "size "+MainActivity().tempUri.size)
             dialog.dismiss()
         }
 
@@ -319,10 +328,13 @@ class MainActivity : AppCompatActivity() {
             document.open()
             try {
                 for (i in 0 until imageUri.size ) {
+                    //var bmp = compressImage(imageUri[i])
                     var bmp = MediaStore.Images.Media.getBitmap(context1.contentResolver,
                             Uri.fromFile(File(imageUri[i])))
                     bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
-                    var image = Image.getInstance(imageUri[i])
+
+                    //var image = Image.getInstance(imageUri[i])
+                    var image = Image.getInstance(compressImage(imageUri[i]))
                     if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
                         image.scaleAbsolute(documentRect.width, documentRect.height)
                     } else {
@@ -340,6 +352,151 @@ class MainActivity : AppCompatActivity() {
                 document.close()
             }
             return  ""
+        }
+
+        fun compressImage(imageUri: String) : ByteArray?{
+
+            val filePath = imageUri
+            var scaledBitmap: Bitmap? = null
+
+            val options = BitmapFactory.Options()
+
+            //      by setting this field as true, the actual bitmap pixels are not loaded in the memory. Just the bounds are loaded. If
+            //      you try the use the bitmap here, you will get null.
+            options.inJustDecodeBounds = true
+            var bmp = BitmapFactory.decodeFile(filePath, options)
+
+            var actualHeight = options.outHeight
+            var actualWidth = options.outWidth
+
+            val maxHeight = 616.0f
+            val maxWidth = 412.0f
+            var imgRatio = (actualWidth / actualHeight).toFloat()
+            val maxRatio = maxWidth / maxHeight
+
+            //      width and height values are set maintaining the aspect ratio of the image
+
+            if (actualHeight > maxHeight || actualWidth > maxWidth) {
+                if (imgRatio < maxRatio) {
+                    imgRatio = maxHeight / actualHeight
+                    actualWidth = (imgRatio * actualWidth).toInt()
+                    actualHeight = maxHeight.toInt()
+                } else if (imgRatio > maxRatio) {
+                    imgRatio = maxWidth / actualWidth
+                    actualHeight = (imgRatio * actualHeight).toInt()
+                    actualWidth = maxWidth.toInt()
+                } else {
+                    actualHeight = maxHeight.toInt()
+                    actualWidth = maxWidth.toInt()
+
+                }
+            }
+
+            //      setting inSampleSize value allows to load a scaled down version of the original image
+
+            options.inSampleSize = calculateInSampleSize(options, actualWidth, actualHeight)
+
+            //      inJustDecodeBounds set to false to load the actual bitmap
+            options.inJustDecodeBounds = false
+
+            //      this options allow android to claim the bitmap memory if it runs low on memory
+            options.inPurgeable = true
+            options.inInputShareable = true
+            options.inTempStorage = ByteArray(16 * 1024)
+
+            try {
+                //          load the bitmap from its path
+                bmp = BitmapFactory.decodeFile(filePath, options)
+            } catch (exception: OutOfMemoryError) {
+                exception.printStackTrace()
+
+            }
+
+            try {
+                scaledBitmap = Bitmap.createBitmap(actualWidth, actualHeight, Bitmap.Config.ARGB_8888)
+            } catch (exception: OutOfMemoryError) {
+                exception.printStackTrace()
+            }
+
+            val ratioX = actualWidth / options.outWidth.toFloat()
+            val ratioY = actualHeight / options.outHeight.toFloat()
+            val middleX = actualWidth / 2.0f
+            val middleY = actualHeight / 2.0f
+
+            val scaleMatrix = Matrix()
+            scaleMatrix.setScale(ratioX, ratioY, middleX, middleY)
+
+            val canvas = Canvas(scaledBitmap!!)
+            canvas.matrix = scaleMatrix
+            canvas.drawBitmap(bmp, middleX - bmp.width / 2, middleY - bmp.height / 2, Paint(Paint.FILTER_BITMAP_FLAG))
+
+            //      check the rotation of the image and display it properly
+            val exif: ExifInterface
+            try {
+                exif = ExifInterface(filePath)
+
+                val orientation = exif.getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION, 0)
+                Log.d("EXIF", "Exif: " + orientation)
+                val matrix = Matrix()
+                if (orientation == 6) {
+                    matrix.postRotate(90f)
+                    Log.d("EXIF", "Exif: " + orientation)
+                } else if (orientation == 3) {
+                    matrix.postRotate(180f)
+                    Log.d("EXIF", "Exif: " + orientation)
+                } else if (orientation == 8) {
+                    matrix.postRotate(270f)
+                    Log.d("EXIF", "Exif: " + orientation)
+                }
+                scaledBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0,
+                        scaledBitmap.width, scaledBitmap.height, matrix,
+                        true)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+
+            var stream: ByteArrayOutputStream? = ByteArrayOutputStream()
+            scaledBitmap?.compress(Bitmap.CompressFormat.PNG, 85, stream)
+            var bytearray = stream?.toByteArray()
+            try {
+                stream?.close()
+            } catch (e: IOException) {
+
+                e.printStackTrace()
+            }
+            return  bytearray
+        }
+
+       /* private fun getRealPathFromURI(contentUri: Uri): String {
+            // Uri contentUri = Uri.parse(contentURI);
+            val cursor = contentResolver.query(contentUri, null, null, null, null)
+            if (cursor == null) {
+                return contentUri.path
+            } else {
+                cursor.moveToFirst()
+                val index = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+                return cursor.getString(index)
+            }
+        }*/
+
+        fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+            val height = options.outHeight
+            val width = options.outWidth
+            var inSampleSize = 1
+
+            if (height > reqHeight || width > reqWidth) {
+                val heightRatio = Math.round(height.toFloat() / reqHeight.toFloat())
+                val widthRatio = Math.round(width.toFloat() / reqWidth.toFloat())
+                inSampleSize = if (heightRatio < widthRatio) heightRatio else widthRatio
+            }
+            val totalPixels = (width * height).toFloat()
+            val totalReqPixelsCap = (reqWidth * reqHeight * 2).toFloat()
+            while (totalPixels / (inSampleSize * inSampleSize) > totalReqPixelsCap) {
+                inSampleSize++
+            }
+
+            return inSampleSize
         }
     }
 
