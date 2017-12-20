@@ -187,9 +187,8 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             fileName = input.toString()
                             Log.d("docsize", "size "+pdfUri.size)
-                            //CreatingPdfImg(this, fileName, pdfUri).execute()
-                            createimg(fileName, pdfUri)
-                            //CreatingDocPdf(this, fileName, docUri).execute()
+                            CreatingPdfImg(this, fileName, pdfUri).execute()
+                            //createimg(fileName, pdfUri)
                         }
                     }).show()
         }
@@ -199,7 +198,9 @@ class MainActivity : AppCompatActivity() {
         var imageUri : ArrayList<String> = docUri
         var path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
         var storageDir = File(path)
-        storageDir.mkdirs()
+        if(!storageDir.exists()) {
+            storageDir.mkdirs()
+        }
         // path = path + fileName + ".png"
         for (i in 0 until imageUri.size){
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -208,13 +209,14 @@ class MainActivity : AppCompatActivity() {
                 var renderer = PdfRenderer(fileDescriptor)
                 var filePath = storageDir.toString()+fileName
                 for(page in 0 until renderer.pageCount){
+                    var pathFile = File(path, fileName+page+".png")
                     var page = renderer.openPage(i)
                     var pageWidth = page.width
                     var pageHeight = page.height
                     var bitmap = Bitmap.createBitmap(pageWidth, pageHeight, Bitmap.Config.ARGB_8888)
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     Log.d("amit", "bitmap1 "+bitmap)
-                    var out = FileOutputStream(filePath)
+                    var out = FileOutputStream(pathFile)
                     var bos = BufferedOutputStream(out)
                     bitmap.compress(Bitmap.CompressFormat.PNG, 70, bos)
                     img.setImageBitmap(bitmap)
@@ -222,6 +224,7 @@ class MainActivity : AppCompatActivity() {
                     bos.flush()
                     bos.close()
                     page.close()
+                   // MediaStore.Images.Media.insertImage(contentResolver, pathFile.absolutePath, pathFile.name, pathFile.name)
                 }
                 renderer.close()
                 fileDescriptor.close()
@@ -493,7 +496,9 @@ class MainActivity : AppCompatActivity() {
         override fun doInBackground(vararg params: String?): String {
             var path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
             var storageDir = File(path)
-            storageDir.mkdirs()
+            if(!storageDir.exists()) {
+                storageDir.mkdirs()
+            }
            // path = path + fileName + ".png"
             for (i in 0 until imageUri.size){
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -502,15 +507,16 @@ class MainActivity : AppCompatActivity() {
                     var renderer = PdfRenderer(fileDescriptor)
                     var filePath = storageDir.toString()+fileName
                     for(page in 0 until renderer.pageCount){
-                        var page = renderer.openPage(i)
+                        var pathFile = File(path, fileName+page+".png")
+                        var page = renderer.openPage(page)
                         var pageWidth = page.width
                         var pageHeight = page.height
                         var bitmap = Bitmap.createBitmap(pageWidth, pageHeight, Bitmap.Config.ARGB_8888)
                         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                         Log.d("amit", "bitmap1 "+bitmap)
-                        var out = FileOutputStream(filePath)
+                        var out = FileOutputStream(pathFile)
                         var bos = BufferedOutputStream(out)
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 70, bos)
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
                         Log.d("amit", "bitmap "+bitmap)
                         bos.flush()
                         bos.close()
