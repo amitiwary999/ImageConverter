@@ -19,6 +19,24 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    dexOptions {
+        jumboMode true
+    }
+    android {
+        packagingOptions {
+            exclude 'META-INF/DEPENDENCIES.txt'
+            exclude 'META-INF/LICENSE.txt'
+            exclude 'META-INF/NOTICE.txt'
+            exclude 'META-INF/NOTICE'
+            exclude 'META-INF/LICENSE'
+            exclude 'META-INF/DEPENDENCIES'
+            exclude 'META-INF/notice.txt'
+            exclude 'META-INF/license.txt'
+            exclude 'META-INF/dependencies.txt'
+            exclude 'META-INF/LGPL2.1'
+        }
+    }
+
 }
 
 repositories {
@@ -44,4 +62,5 @@ dependencies {
         transitive = true
     }
     compile 'com.itextpdf:itextg:5.5.9'
+    compile group: 'org.apache.pdfbox', name : 'pdfbox-tools', version : '2.0.0-RC1'
 }

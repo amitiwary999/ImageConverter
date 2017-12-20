@@ -32,4 +32,18 @@
         android:layout_height="50dp"
         android:layout_below="@id/doc"
         android:text="create doc pdf"/>
+
+    <Button
+        android:id="@+id/selectpdf"
+        android:layout_width="200dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/docpdf"
+        android:text="select pdf"/>
+
+    <Button
+        android:id="@+id/pdfimg"
+        android:layout_width="200dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/selectpdf"
+        android:text="change pdf to img"/>
 </RelativeLayout>
