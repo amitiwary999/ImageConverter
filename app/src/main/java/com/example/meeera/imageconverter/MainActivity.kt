@@ -32,11 +32,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import org.apache.commons.io.FileUtils
-import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.rendering.ImageType
-import org.apache.pdfbox.rendering.PDFRenderer
-import org.apache.pdfbox.tools.imageio.ImageIOUtil
 import java.io.BufferedOutputStream
 
 class MainActivity : AppCompatActivity() {
@@ -161,10 +156,6 @@ class MainActivity : AppCompatActivity() {
             intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
             startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
         }
-       /* var intent = Intent()
-        intent.setType("application/msword")
-        intent.setAction(Intent.ACTION_GET_CONTENT)
-        startActivityForResult(Intent.createChooser(intent, "Select doc"), REQUEST_GET_DOC )*/
     }
 
     fun selectPdf(){
@@ -188,53 +179,8 @@ class MainActivity : AppCompatActivity() {
                             fileName = input.toString()
                             Log.d("docsize", "size "+pdfUri.size)
                             CreatingPdfImg(this, fileName, pdfUri).execute()
-                            //createimg(fileName, pdfUri)
                         }
                     }).show()
-        }
-    }
-
-    fun createimg(fileName:String, docUri:ArrayList<String>){
-        var imageUri : ArrayList<String> = docUri
-        var path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
-        var storageDir = File(path)
-        if(!storageDir.exists()) {
-            storageDir.mkdirs()
-        }
-        // path = path + fileName + ".png"
-        for (i in 0 until imageUri.size){
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                var file = File(imageUri[i])
-                var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                var renderer = PdfRenderer(fileDescriptor)
-                var filePath = storageDir.toString()+fileName
-                for(page in 0 until renderer.pageCount){
-                    var pathFile = File(path, fileName+page+".png")
-                    var page = renderer.openPage(i)
-                    var pageWidth = page.width
-                    var pageHeight = page.height
-                    var bitmap = Bitmap.createBitmap(pageWidth, pageHeight, Bitmap.Config.ARGB_8888)
-                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    Log.d("amit", "bitmap1 "+bitmap)
-                    var out = FileOutputStream(pathFile)
-                    var bos = BufferedOutputStream(out)
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 70, bos)
-                    img.setImageBitmap(bitmap)
-                    Log.d("amit", "bitmap "+bitmap)
-                    bos.flush()
-                    bos.close()
-                    page.close()
-                   // MediaStore.Images.Media.insertImage(contentResolver, pathFile.absolutePath, pathFile.name, pathFile.name)
-                }
-                renderer.close()
-                fileDescriptor.close()
-                /* var document = PDDocument.load(File(imageUri[i]))
-                 var pdfRenderer = PDFRenderer(document)
-                 for (page in 0 until document.numberOfPages) {
-
-                     // ImageIOUtil.writeImage(bim, String.format(""))
-                 }*/
-            }
         }
     }
 
@@ -499,13 +445,12 @@ class MainActivity : AppCompatActivity() {
             if(!storageDir.exists()) {
                 storageDir.mkdirs()
             }
-           // path = path + fileName + ".png"
+
             for (i in 0 until imageUri.size){
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     var file = File(imageUri[i])
                     var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                     var renderer = PdfRenderer(fileDescriptor)
-                    var filePath = storageDir.toString()+fileName
                     for(page in 0 until renderer.pageCount){
                         var pathFile = File(path, fileName+page+".png")
                         var page = renderer.openPage(page)
@@ -524,12 +469,6 @@ class MainActivity : AppCompatActivity() {
                     }
                     renderer.close()
                     fileDescriptor.close()
-                   /* var document = PDDocument.load(File(imageUri[i]))
-                    var pdfRenderer = PDFRenderer(document)
-                    for (page in 0 until document.numberOfPages) {
-
-                        // ImageIOUtil.writeImage(bim, String.format(""))
-                    }*/
                 }
             }
             return ""

@@ -46,10 +46,4 @@
         android:layout_height="50dp"
         android:layout_below="@id/selectpdf"
         android:text="change pdf to img"/>
-
-    <ImageView
-        android:layout_width="match_parent"
-        android:layout_height="150dp"
-        android:id="@+id/img"
-        android:layout_below="@id/pdfimg"/>
 </RelativeLayout>
