@@ -8,7 +8,7 @@ This app can be use to covert.
 # Done
 * Imgage to pdf
 * simple doc(containing only simpple text no image no table but only text) to pdf
-* pdf to image(for lollipop and greater than lollipop device)
+* pdf to image
 
 # Rest to do
 * Converting complex doc to pdf
