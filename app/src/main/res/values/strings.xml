@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ImageConverter</string>
+    <string name="lollipop_error">Currently this is only for lollipop and greater than that</string>
 </resources>

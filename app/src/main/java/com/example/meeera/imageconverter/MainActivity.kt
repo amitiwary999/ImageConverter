@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     val REQUEST_GET_PDF = 2
     val REQUEST_ID_MULTIPLE_PERMISSIONS = 1
     val REQUEST_ID_MULTIPLE_PERMISSIONS1 = 2
+    val REQUEST_ID_MULTIPLE_PERMISSIONS2 = 3
     var tempUri : ArrayList<String> = ArrayList()
     var tempDocUri : ArrayList<String> = ArrayList()
     var tempPdfUri : ArrayList<String> = ArrayList()
@@ -159,9 +160,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun selectPdf(){
-        var intent = Intent(this, NormalFilePickActivity::class.java)
-        intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
-        startActivityForResult(intent, REQUEST_GET_PDF)
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                var permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
+                var permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+                var listPermissionNeeded: ArrayList<String> = ArrayList<String>()
+                if (permissionWriteStorage != PackageManager.PERMISSION_GRANTED) {
+                    listPermissionNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+                if (permissionReadStorage != PackageManager.PERMISSION_GRANTED) {
+                    listPermissionNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                }
+
+                if (!listPermissionNeeded.isEmpty()) {
+                    ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS2)
+                } else {
+                    var intent = Intent(this, NormalFilePickActivity::class.java)
+                    intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
+                    startActivityForResult(intent, REQUEST_GET_PDF)
+                }
+            } else {
+            var intent = Intent(this, NormalFilePickActivity::class.java)
+            intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
+            startActivityForResult(intent, REQUEST_GET_PDF)
+            }
+        } else{
+            Toast.makeText(this, resources.getString(R.string.lollipop_error), Toast.LENGTH_LONG).show()
+        }
     }
 
     fun createImage(){
@@ -275,21 +301,47 @@ class MainActivity : AppCompatActivity() {
                 val perms: HashMap<String, Int> = HashMap()
                 perms.put(Manifest.permission.READ_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
                 perms.put(Manifest.permission.WRITE_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
-                perms.put(Manifest.permission.CAMERA, PackageManager.PERMISSION_GRANTED)
                 if (grantResults.size > 0) {
                     if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
-                            perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
-                            perms.get(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                            perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
                         var intent = Intent(this, NormalFilePickActivity::class.java)
                         intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
                         startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
                     } else {
-                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
-                                ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
-                            showDialogOK(" Read and write external storage and camera permission needed", DialogInterface.OnClickListener { _, which ->
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                            showDialogOK(" Read and write external storage permission needed", DialogInterface.OnClickListener { _, which ->
                                 when (which) {
                                     DialogInterface.BUTTON_POSITIVE -> {
                                         selectDoc()
+                                    }
+
+                                    DialogInterface.BUTTON_NEGATIVE -> {
+                                        Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            })
+                        } else {
+                            Toast.makeText(this, "Go to settings and enable permissions", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            REQUEST_ID_MULTIPLE_PERMISSIONS2 ->{
+                val perms: HashMap<String, Int> = HashMap()
+                perms.put(Manifest.permission.READ_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
+                perms.put(Manifest.permission.WRITE_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
+                if (grantResults.size > 0) {
+                    if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+                            perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                        var intent = Intent(this, NormalFilePickActivity::class.java)
+                        intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
+                        startActivityForResult(intent, REQUEST_GET_PDF)
+                    } else {
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE) || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                            showDialogOK(" Read and write external storage permission needed", DialogInterface.OnClickListener { _, which ->
+                                when (which) {
+                                    DialogInterface.BUTTON_POSITIVE -> {
+                                        selectPdf()
                                     }
 
                                     DialogInterface.BUTTON_NEGATIVE -> {
