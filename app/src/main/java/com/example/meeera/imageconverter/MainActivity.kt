@@ -25,6 +25,7 @@ import com.itextpdf.text.Image
 import com.itextpdf.text.PageSize
 import com.itextpdf.text.Paragraph
 import com.itextpdf.text.pdf.PdfWriter
+import com.shockwave.pdfium.PdfiumCore
 import com.vincent.filepicker.Constant
 import com.vincent.filepicker.activity.NormalFilePickActivity
 import com.vincent.filepicker.filter.entity.NormalFile
@@ -160,7 +161,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun selectPdf(){
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 var permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
                 var permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -181,13 +181,10 @@ class MainActivity : AppCompatActivity() {
                     startActivityForResult(intent, REQUEST_GET_PDF)
                 }
             } else {
-            var intent = Intent(this, NormalFilePickActivity::class.java)
-            intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
-            startActivityForResult(intent, REQUEST_GET_PDF)
+                var intent = Intent(this, NormalFilePickActivity::class.java)
+                intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
+                startActivityForResult(intent, REQUEST_GET_PDF)
             }
-        } else{
-            Toast.makeText(this, resources.getString(R.string.lollipop_error), Toast.LENGTH_LONG).show()
-        }
     }
 
     fun createImage(){
@@ -479,6 +476,7 @@ class MainActivity : AppCompatActivity() {
 
         var fileName : String = fileName
         var imageUri : ArrayList<String> = docUri
+        var context : Context = context.baseContext
         var builder : MaterialDialog.Builder  = MaterialDialog.Builder(context)
                 .title("please wait")
                 .content("Creating File")
@@ -499,29 +497,26 @@ class MainActivity : AppCompatActivity() {
             }
 
             for (i in 0 until imageUri.size){
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    var file = File(imageUri[i])
-                    var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                    var renderer = PdfRenderer(fileDescriptor)
-                    for(page in 0 until renderer.pageCount){
-                        var pathFile = File(path, fileName+page+".png")
-                        var page = renderer.openPage(page)
-                        var pageWidth = page.width
-                        var pageHeight = page.height
-                        var bitmap = Bitmap.createBitmap(pageWidth, pageHeight, Bitmap.Config.ARGB_8888)
-                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        Log.d("amit", "bitmap1 "+bitmap)
-                        var out = FileOutputStream(pathFile)
-                        var bos = BufferedOutputStream(out)
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
-                        Log.d("amit", "bitmap "+bitmap)
-                        bos.flush()
-                        bos.close()
-                        page.close()
-                    }
-                    renderer.close()
-                    fileDescriptor.close()
+                var file = File(imageUri[i])
+                var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                var pdfiumCore = PdfiumCore(context)
+                var pdfDocument = pdfiumCore.newDocument(fileDescriptor)
+                for (page in 0 until pdfiumCore.getPageCount(pdfDocument)) {
+                    var pathFile = File(path, fileName + page + ".png")
+                    pdfiumCore.openPage(pdfDocument, page)
+                    val width = pdfiumCore.getPageWidthPoint(pdfDocument, page)
+                    val height = pdfiumCore.getPageHeightPoint(pdfDocument, page)
+                    var bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    pdfiumCore.renderPageBitmap(pdfDocument, bitmap, page, 0, 0, width, height)
+                    var out = FileOutputStream(pathFile)
+                    var bos = BufferedOutputStream(out)
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
+                    Log.d("amit1", "bitmap " + bitmap)
+                    bos.flush()
+                    bos.close()
                 }
+                pdfiumCore.closeDocument(pdfDocument)
+                fileDescriptor.close()
             }
             return ""
         }
