@@ -19,11 +19,15 @@ import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
 import com.afollestad.materialdialogs.MaterialDialog
+import com.aspose.words.ImageSaveOptions
+import com.aspose.words.SaveFormat
 import com.gun0912.tedpicker.ImagePickerActivity
 import com.itextpdf.text.Document
 import com.itextpdf.text.Image
 import com.itextpdf.text.PageSize
 import com.itextpdf.text.Paragraph
+import com.itextpdf.text.pdf.PdfCopy
+import com.itextpdf.text.pdf.PdfReader
 import com.itextpdf.text.pdf.PdfWriter
 import com.shockwave.pdfium.PdfiumCore
 import com.vincent.filepicker.Constant
@@ -70,6 +74,12 @@ class MainActivity : AppCompatActivity() {
         })
         pdfimg.setOnClickListener({
             createImage()
+        })
+        docimg.setOnClickListener({
+
+        })
+        mergepdf.setOnClickListener({
+            mergePdf()
         })
     }
 
@@ -207,6 +217,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun mergePdf(){
+       if(tempPdfUri.size == 0){
+           Toast.makeText(this, "No pdf selected", Toast.LENGTH_LONG).show()
+       }else{
+           pdfUri = tempPdfUri.clone() as ArrayList<String>
+           MaterialDialog.Builder(this)
+                   .title("Merging Pdf")
+                   .content("Enter File name")
+                   .input("Example : test", null, MaterialDialog.InputCallback { _, input ->
+                       if (input == null || input.toString().trim().equals("")) {
+                           Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
+                       } else {
+                           fileName = input.toString()
+                           Log.d("docsize", "size "+pdfUri.size)
+                           mergePdf(this, fileName, pdfUri).execute()
+                       }
+                   }).show()
+       }
+    }
+
     fun createDocPdf(){
         if(tempDocUri.size == 0) {
             Toast.makeText(this, "No doc selected", Toast.LENGTH_LONG).show()
@@ -221,7 +251,8 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             fileName = input.toString()
                             Log.d("docsize", "size "+docUri.size)
-                            CreatingDocPdf(this, fileName, docUri).execute()
+                            //CreatingDocPdf(this, fileName, docUri).execute()
+                            CreatingDocImg(this, fileName, docUri).execute()
                         }
                     }).show()
         }
@@ -525,5 +556,69 @@ class MainActivity : AppCompatActivity() {
             super.onPostExecute(result)
             dialog.dismiss()
         }
+    }
+
+    class CreatingDocImg(context: Activity, fileName:String, docUri:ArrayList<String>) : AsyncTask<String, String, String>() {
+        var context1 : Context = context.baseContext
+        var fileName : String = fileName
+        var imageUri : ArrayList<String> = docUri
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(context)
+                .title("please wait")
+                .content("Creating File")
+                .cancelable(false)
+                .progress(true, 0)
+        var dialog : MaterialDialog = builder.build()
+
+        override fun onPreExecute() {
+            super.onPreExecute()
+            dialog.show()
+        }
+
+        override fun doInBackground(vararg params: String?): String {
+            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/DocImg"
+            var option = ImageSaveOptions(SaveFormat.JPEG)
+            option.jpegQuality = 100
+            option.resolution  = 100f
+            option.useHighQualityRendering = true
+            try {
+                for(i in 0 until imageUri.size){
+                    var doc = com.aspose.words.Document(imageUri[i])
+                    for(page in 0 until doc.pageCount){
+                        option.pageIndex = page
+                        doc.save(path+fileName+page+".jpeg", option)
+                    }
+                }
+            }catch(e : Exception){
+                e.printStackTrace()
+            }
+            return ""
+        }
+
+        override fun onPostExecute(result: String?) {
+            super.onPostExecute(result)
+            dialog.dismiss()
+        }
+    }
+
+    class mergePdf(context: Activity, fileName:String, pdfUri:ArrayList<String>) : AsyncTask<String, String, String>(){
+        var fileName = fileName
+        var pdfUri = pdfUri
+        override fun doInBackground(vararg params: String?): String {
+            var document = Document()
+            var fileOutStream = FileOutputStream(fileName)
+            var copy = PdfCopy(document, fileOutStream)
+            document.open()
+            var n = 0
+            for(i in 0 until pdfUri.size){
+                var pr = PdfReader(pdfUri.get(i))
+                n = pr.numberOfPages
+                for (page in 1 until n+1){
+                    copy.addPage(copy.getImportedPage(pr, page))
+                }
+            }
+            document.close()
+            return ""
+        }
+
     }
 }
