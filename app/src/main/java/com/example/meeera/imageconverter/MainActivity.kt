@@ -555,6 +555,18 @@ class MainActivity : AppCompatActivity() {
     class mergePdf(context: Activity, fileName:String, pdfUri:ArrayList<String>) : AsyncTask<String, String, String>(){
         var fileName = fileName
         var pdfUri = pdfUri
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(context)
+                .title("please wait")
+                .content("Creating File")
+                .cancelable(false)
+                .progress(true, 0)
+        var dialog : MaterialDialog = builder.build()
+
+        override fun onPreExecute() {
+            super.onPreExecute()
+            dialog.show()
+        }
+
         override fun doInBackground(vararg params: String?): String {
             var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
             var storageDir = File(path)
@@ -579,5 +591,9 @@ class MainActivity : AppCompatActivity() {
             return ""
         }
 
+        override fun onPostExecute(result: String?) {
+            super.onPostExecute(result)
+            dialog.dismiss()
+        }
     }
 }
