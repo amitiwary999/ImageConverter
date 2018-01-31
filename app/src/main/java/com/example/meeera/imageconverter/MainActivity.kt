@@ -25,6 +25,8 @@ import com.itextpdf.text.Image
 import com.itextpdf.text.PageSize
 import com.itextpdf.text.Paragraph
 import com.itextpdf.text.pdf.PdfWriter
+import com.itextpdf.text.pdf.PdfCopy
+import com.itextpdf.text.pdf.PdfReader
 import com.shockwave.pdfium.PdfiumCore
 import com.vincent.filepicker.Constant
 import com.vincent.filepicker.activity.NormalFilePickActivity
@@ -70,6 +72,9 @@ class MainActivity : AppCompatActivity() {
         })
         pdfimg.setOnClickListener({
             createImage()
+        })
+        mergepdf.setOnClickListener({
+            mergePdf()
         })
     }
 
@@ -222,6 +227,26 @@ class MainActivity : AppCompatActivity() {
                             fileName = input.toString()
                             Log.d("docsize", "size "+docUri.size)
                             CreatingDocPdf(this, fileName, docUri).execute()
+                        }
+                    }).show()
+        }
+    }
+
+    fun mergePdf(){
+        if(tempPdfUri.size == 0){
+            Toast.makeText(this, "No pdf selected", Toast.LENGTH_LONG).show()
+        }else{
+            pdfUri = tempPdfUri.clone() as ArrayList<String>
+            MaterialDialog.Builder(this)
+                    .title("Merging Pdf")
+                    .content("Enter File name")
+                    .input("Example : test", null, MaterialDialog.InputCallback { _, input ->
+                        if (input == null || input.toString().trim().equals("")) {
+                            Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
+                        } else {
+                            fileName = input.toString()
+                            Log.d("docsize", "size "+pdfUri.size)
+                            mergePdf(this, fileName, pdfUri).execute()
                         }
                     }).show()
         }
@@ -525,5 +550,34 @@ class MainActivity : AppCompatActivity() {
             super.onPostExecute(result)
             dialog.dismiss()
         }
+    }
+
+    class mergePdf(context: Activity, fileName:String, pdfUri:ArrayList<String>) : AsyncTask<String, String, String>(){
+        var fileName = fileName
+        var pdfUri = pdfUri
+        override fun doInBackground(vararg params: String?): String {
+            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+            var storageDir = File(path)
+            if(!storageDir.exists()) {
+                storageDir.mkdirs()
+            }
+            path = path+fileName+".pdf"
+            var file = File(path)
+            var document = Document()
+            var fileOutStream = FileOutputStream(file)
+            var copy = PdfCopy(document, fileOutStream)
+            document.open()
+            var n = 0
+            for(i in 0 until pdfUri.size){
+                var pr = PdfReader(pdfUri.get(i))
+                n = pr.numberOfPages
+                for (page in 1 until n+1){
+                    copy.addPage(copy.getImportedPage(pr, page))
+                }
+            }
+            document.close()
+            return ""
+        }
+
     }
 }

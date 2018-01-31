@@ -46,4 +46,11 @@
         android:layout_height="50dp"
         android:layout_below="@id/selectpdf"
         android:text="change pdf to img"/>
+
+    <Button
+        android:id="@+id/mergepdf"
+        android:layout_width="200dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/pdfimg"
+        android:text="merge pdf files"/>
 </RelativeLayout>
