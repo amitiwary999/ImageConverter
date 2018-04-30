@@ -18,6 +18,9 @@ import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
+import bolts.Continuation
+import bolts.Task
+import bolts.Task.call
 import com.afollestad.materialdialogs.MaterialDialog
 import com.gun0912.tedpicker.ImagePickerActivity
 import com.itextpdf.text.Document
@@ -36,6 +39,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
+import java.util.concurrent.Callable
 
 class MainActivity : AppCompatActivity() {
 
@@ -246,7 +250,7 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             fileName = input.toString()
                             Log.d("docsize", "size "+pdfUri.size)
-                            mergePdf(this, fileName, pdfUri).execute()
+                            mergePDF( fileName, pdfUri)
                         }
                     }).show()
         }
@@ -387,6 +391,35 @@ class MainActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", okListener)
                 .create()
                 .show()
+    }
+
+    fun mergePDF(fileName:String, pdfUri:ArrayList<String>){
+        var task1 = Task<Boolean>(true)
+        task1.callInBackground({
+           var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+            var storageDir = File(path)
+            if(!storageDir.exists()) {
+                storageDir.mkdirs()
+            }
+            path = path+fileName+".pdf"
+            var file = File(path)
+            var document = Document()
+            var fileOutStream = FileOutputStream(file)
+            var copy = PdfCopy(document, fileOutStream)
+            document.open()
+            var n = 0
+            for(i in 0 until pdfUri.size){
+                var pr = PdfReader(pdfUri.get(i))
+                n = pr.numberOfPages
+                for (page in 1 until n+1){
+                    copy.addPage(copy.getImportedPage(pr, page))
+                }
+            }
+            document.close()
+        }).onSuccess({
+            Toast.makeText(this, "merged pdf files", Toast.LENGTH_SHORT).show()
+            Log.d("success ", "merged pdf")
+        })
     }
 
     class CreatingPdf(context: Activity, fileName:String, imageUri:ArrayList<String>) : AsyncTask<String, String, String>() {
@@ -543,51 +576,6 @@ class MainActivity : AppCompatActivity() {
                 pdfiumCore.closeDocument(pdfDocument)
                 fileDescriptor.close()
             }
-            return ""
-        }
-
-        override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-            dialog.dismiss()
-        }
-    }
-
-    class mergePdf(context: Activity, fileName:String, pdfUri:ArrayList<String>) : AsyncTask<String, String, String>(){
-        var fileName = fileName
-        var pdfUri = pdfUri
-        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(context)
-                .title("please wait")
-                .content("Creating File")
-                .cancelable(false)
-                .progress(true, 0)
-        var dialog : MaterialDialog = builder.build()
-
-        override fun onPreExecute() {
-            super.onPreExecute()
-            dialog.show()
-        }
-
-        override fun doInBackground(vararg params: String?): String {
-            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-            var storageDir = File(path)
-            if(!storageDir.exists()) {
-                storageDir.mkdirs()
-            }
-            path = path+fileName+".pdf"
-            var file = File(path)
-            var document = Document()
-            var fileOutStream = FileOutputStream(file)
-            var copy = PdfCopy(document, fileOutStream)
-            document.open()
-            var n = 0
-            for(i in 0 until pdfUri.size){
-                var pr = PdfReader(pdfUri.get(i))
-                n = pr.numberOfPages
-                for (page in 1 until n+1){
-                    copy.addPage(copy.getImportedPage(pr, page))
-                }
-            }
-            document.close()
             return ""
         }
 
