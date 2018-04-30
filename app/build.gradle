@@ -64,4 +64,6 @@ dependencies {
     compile 'com.itextpdf:itextg:5.5.9'
     compile group: 'org.apache.pdfbox', name : 'pdfbox-tools', version : '2.0.0-RC1'
     compile 'com.github.barteksc:pdfium-android:1.8.2'
+    compile project(":bolts-android")
+    compile project(":bolts-tasks")
 }
