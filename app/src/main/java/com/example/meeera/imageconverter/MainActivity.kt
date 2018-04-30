@@ -417,6 +417,7 @@ class MainActivity : AppCompatActivity() {
             }
             document.close()
         }).onSuccess({
+            Toast.makeText(this, "merged pdf files", Toast.LENGTH_SHORT).show()
             Log.d("success ", "merged pdf")
         })
     }
