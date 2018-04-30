@@ -394,6 +394,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun mergePDF(fileName:String, pdfUri:ArrayList<String>){
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+                .title("please wait")
+                .content("Creating File")
+                .cancelable(false)
+                .progress(true, 0)
+        var dialog : MaterialDialog = builder.build()
+        dialog.show()
         var task1 = Task<Boolean>(true)
         task1.callInBackground({
            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
@@ -417,8 +424,8 @@ class MainActivity : AppCompatActivity() {
             }
             document.close()
         }).onSuccess({
-            Toast.makeText(this, "merged pdf files", Toast.LENGTH_SHORT).show()
             Log.d("success ", "merged pdf")
+            dialog.dismiss()
         })
     }
 
