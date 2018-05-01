@@ -137,7 +137,7 @@ class MainActivity : AppCompatActivity() {
                  }else{
                      fileName = input.toString()
                      Log.d("amituri", "amit"+imageUri.size)
-                     CreatingPdf(this, fileName, imageUri).execute()
+                     creatingPdf(fileName, imageUri)
                  }
              }).show()
     }
@@ -210,7 +210,7 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             fileName = input.toString()
                             Log.d("docsize", "size "+pdfUri.size)
-                            CreatingPdfImg(this, fileName, pdfUri).execute()
+                            creatingPdfImg(fileName, pdfUri)
                         }
                     }).show()
         }
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             fileName = input.toString()
                             Log.d("docsize", "size "+docUri.size)
-                            CreatingDocPdf(this, fileName, docUri).execute()
+                            creatingDocPdf(fileName, docUri)
                         }
                     }).show()
         }
@@ -429,37 +429,24 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    class CreatingPdf(context: Activity, fileName:String, imageUri:ArrayList<String>) : AsyncTask<String, String, String>() {
-        var context1 : Context = context.baseContext
+    fun creatingPdf(fileName:String, imageUri:ArrayList<String>){
         var fileName : String = fileName
         var imageUri : ArrayList<String> = imageUri
-        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(context)
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
                 .cancelable(false)
                 .progress(true, 0)
         var dialog : MaterialDialog = builder.build()
-
-        override fun onPreExecute() {
-            super.onPreExecute()
-            dialog.show()
-        }
-
-        override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-            MainActivity().imageUri.clear()
-            MainActivity().tempUri.clear()
-            dialog.dismiss()
-        }
-
-        override fun doInBackground(vararg params: String?): String {
+        dialog.show()
+        var task = Task<Boolean>(true)
+        task.callInBackground({
             var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
             var folder = File(path)
             if(!folder.exists()){
                 var success = folder.mkdir()
                 if(!success){
-                    Toast.makeText(context1, " ", Toast.LENGTH_SHORT).show()
-                    return ""
+                    Toast.makeText(this, " can't create file", Toast.LENGTH_SHORT).show()
                 }
             }
             path = path + fileName + ".pdf"
@@ -470,7 +457,7 @@ class MainActivity : AppCompatActivity() {
             document.open()
             try {
                 for (i in 0 until imageUri.size ) {
-                    var bmp = MediaStore.Images.Media.getBitmap(context1.contentResolver,
+                    var bmp = MediaStore.Images.Media.getBitmap(this.contentResolver,
                             Uri.fromFile(File(imageUri[i])))
                     bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
                     var image = Image.getInstance(imageUri[i])
@@ -490,11 +477,96 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
                 document.close()
             }
-            return  ""
-        }
+        }).onSuccess({
+            dialog.dismiss()
+            Log.d("success ", "pdf created")
+            MainActivity().imageUri.clear()
+            MainActivity().pdfUri.clear()
+        })
     }
 
-    class CreatingDocPdf(context: Activity, fileName:String, docUri:ArrayList<String>) : AsyncTask<String, String, String>() {
+    fun creatingDocPdf(fileName:String, docUri:ArrayList<String>){
+        var fileName : String = fileName
+        var imageUri : ArrayList<String> = docUri
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+                .title("please wait")
+                .content("Creating File")
+                .cancelable(false)
+                .progress(true, 0)
+        var dialog : MaterialDialog = builder.build()
+        dialog.show()
+        var task = Task<Boolean>(true)
+        task.callInBackground({
+            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+            path = path + fileName + ".pdf"
+            var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+            var writer = PdfWriter.getInstance(document, FileOutputStream(path))
+            document.open()
+            try {
+                for(i in 0 until imageUri.size){
+                    document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]), "UTF-8")))
+                    document.newPage()
+                }
+                document.close()
+            }catch(e : Exception){
+                e.printStackTrace()
+                document.close()
+            }
+        }).onSuccess({
+            dialog.dismiss()
+            Log.d("success ", "pdf created")
+            MainActivity().docUri.clear()
+            MainActivity().tempDocUri.clear()
+        })
+
+    }
+
+    fun creatingPdfImg(fileName:String, pdfUri:ArrayList<String>){
+        var fileName : String = fileName
+        var pdfUri : ArrayList<String> = pdfUri
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+                .title("please wait")
+                .content("Creating File")
+                .cancelable(false)
+                .progress(true, 0)
+        var dialog : MaterialDialog = builder.build()
+        dialog.show()
+        var task = Task<Boolean>(true)
+        task.callInBackground({
+            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
+            var storageDir = File(path)
+            if(!storageDir.exists()) {
+                storageDir.mkdirs()
+            }
+
+            for (i in 0 until pdfUri.size){
+                var file = File(pdfUri[i])
+                var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                var pdfiumCore = PdfiumCore(this)
+                var pdfDocument = pdfiumCore.newDocument(fileDescriptor)
+                for (page in 0 until pdfiumCore.getPageCount(pdfDocument)) {
+                    var pathFile = File(path, fileName + page + ".png")
+                    pdfiumCore.openPage(pdfDocument, page)
+                    val width = pdfiumCore.getPageWidthPoint(pdfDocument, page)
+                    val height = pdfiumCore.getPageHeightPoint(pdfDocument, page)
+                    var bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    pdfiumCore.renderPageBitmap(pdfDocument, bitmap, page, 0, 0, width, height)
+                    var out = FileOutputStream(pathFile)
+                    var bos = BufferedOutputStream(out)
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
+                    Log.d("amit1", "bitmap " + bitmap)
+                    bos.flush()
+                    bos.close()
+                }
+                pdfiumCore.closeDocument(pdfDocument)
+                fileDescriptor.close()
+            }
+        }).onSuccess({
+            Log.d("success ", "pdf to img change")
+            dialog.dismiss()
+        })
+    }
+   /* class CreatingDocPdf(context: Activity, fileName:String, docUri:ArrayList<String>) : AsyncTask<String, String, String>() {
         var context1 : Context = context.baseContext
         var fileName : String = fileName
         var imageUri : ArrayList<String> = docUri
@@ -535,9 +607,9 @@ class MainActivity : AppCompatActivity() {
             MainActivity().tempDocUri.clear()
             dialog.dismiss()
         }
-    }
+    }*/
 
-    class CreatingPdfImg(context: Activity, fileName:String, docUri:ArrayList<String>) : AsyncTask<String, String, String>(){
+  /*  class CreatingPdfImg(context: Activity, fileName:String, docUri:ArrayList<String>) : AsyncTask<String, String, String>(){
 
         var fileName : String = fileName
         var imageUri : ArrayList<String> = docUri
@@ -590,5 +662,5 @@ class MainActivity : AppCompatActivity() {
             super.onPostExecute(result)
             dialog.dismiss()
         }
-    }
+    }*/
 }

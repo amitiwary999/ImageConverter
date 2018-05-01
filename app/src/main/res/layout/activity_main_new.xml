@@ -45,7 +45,7 @@
                 android:id="@+id/doc"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:text="create doc"/>
+                android:text="Select doc"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp"
