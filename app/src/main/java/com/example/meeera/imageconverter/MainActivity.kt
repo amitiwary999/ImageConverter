@@ -18,6 +18,9 @@ import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.widget.ImageView
 import android.widget.Toast
+import bolts.Continuation
+import bolts.Task
+import bolts.Task.call
 import com.afollestad.materialdialogs.MaterialDialog
 import com.gun0912.tedpicker.ImagePickerActivity
 import com.itextpdf.text.Document
@@ -25,15 +28,18 @@ import com.itextpdf.text.Image
 import com.itextpdf.text.PageSize
 import com.itextpdf.text.Paragraph
 import com.itextpdf.text.pdf.PdfWriter
+import com.itextpdf.text.pdf.PdfCopy
+import com.itextpdf.text.pdf.PdfReader
 import com.shockwave.pdfium.PdfiumCore
 import com.vincent.filepicker.Constant
 import com.vincent.filepicker.activity.NormalFilePickActivity
 import com.vincent.filepicker.filter.entity.NormalFile
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_main_new.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
+import java.util.concurrent.Callable
 
 class MainActivity : AppCompatActivity() {
 
@@ -52,7 +58,7 @@ class MainActivity : AppCompatActivity() {
     var docFilePath : String ?= null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_main_new)
         select.setOnClickListener({
             selectImage()
         })
@@ -70,6 +76,9 @@ class MainActivity : AppCompatActivity() {
         })
         pdfimg.setOnClickListener({
             createImage()
+        })
+        mergepdf.setOnClickListener({
+            mergePdf()
         })
     }
 
@@ -227,6 +236,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun mergePdf(){
+        if(tempPdfUri.size == 0){
+            Toast.makeText(this, "No pdf selected", Toast.LENGTH_LONG).show()
+        }else{
+            pdfUri = tempPdfUri.clone() as ArrayList<String>
+            MaterialDialog.Builder(this)
+                    .title("Merging Pdf")
+                    .content("Enter File name")
+                    .input("Example : test", null, MaterialDialog.InputCallback { _, input ->
+                        if (input == null || input.toString().trim().equals("")) {
+                            Toast.makeText(this, "name cannot be blank", Toast.LENGTH_SHORT).show()
+                        } else {
+                            fileName = input.toString()
+                            Log.d("docsize", "size "+pdfUri.size)
+                            mergePDF( fileName, pdfUri)
+                        }
+                    }).show()
+        }
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if(requestCode == INTENT_REQUEST_GET_IMAGES && resultCode == Activity.RESULT_OK) {
@@ -362,6 +391,42 @@ class MainActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", okListener)
                 .create()
                 .show()
+    }
+
+    fun mergePDF(fileName:String, pdfUri:ArrayList<String>){
+        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+                .title("please wait")
+                .content("Creating File")
+                .cancelable(false)
+                .progress(true, 0)
+        var dialog : MaterialDialog = builder.build()
+        dialog.show()
+        var task1 = Task<Boolean>(true)
+        task1.callInBackground({
+           var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+            var storageDir = File(path)
+            if(!storageDir.exists()) {
+                storageDir.mkdirs()
+            }
+            path = path+fileName+".pdf"
+            var file = File(path)
+            var document = Document()
+            var fileOutStream = FileOutputStream(file)
+            var copy = PdfCopy(document, fileOutStream)
+            document.open()
+            var n = 0
+            for(i in 0 until pdfUri.size){
+                var pr = PdfReader(pdfUri.get(i))
+                n = pr.numberOfPages
+                for (page in 1 until n+1){
+                    copy.addPage(copy.getImportedPage(pr, page))
+                }
+            }
+            document.close()
+        }).onSuccess({
+            Log.d("success ", "merged pdf")
+            dialog.dismiss()
+        })
     }
 
     class CreatingPdf(context: Activity, fileName:String, imageUri:ArrayList<String>) : AsyncTask<String, String, String>() {
