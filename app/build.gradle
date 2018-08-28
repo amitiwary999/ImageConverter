@@ -46,6 +46,12 @@ repositories {
 
 }
 
+kotlin {
+    experimental {
+        coroutines 'enable'
+    }
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
@@ -65,4 +71,6 @@ dependencies {
     compile group: 'org.apache.pdfbox', name : 'pdfbox-tools', version : '2.0.0-RC1'
     compile 'com.github.barteksc:pdfium-android:1.8.2'
     compile project(":bolts-tasks")
+    compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.20"
+    compile "org.jetbrains.kotlinx:kotlinx-coroutines-android:0.20"
 }
