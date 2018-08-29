@@ -435,32 +435,6 @@ class MainActivity : AppCompatActivity() {
             job.await()
             dialog.dismiss()
         }
-
-//        launch(Background) {
-//            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-//            var storageDir = File(path)
-//            if(!storageDir.exists()) {
-//                storageDir.mkdirs()
-//            }
-//            path = path+fileName+".pdf"
-//            var file = File(path)
-//            var document = Document()
-//            var fileOutStream = FileOutputStream(file)
-//            var copy = PdfCopy(document, fileOutStream)
-//            document.open()
-//            var n = 0
-//            for(i in 0 until pdfUri.size){
-//                var pr = PdfReader(pdfUri.get(i))
-//                n = pr.numberOfPages
-//                for (page in 1 until n+1){
-//                    copy.addPage(copy.getImportedPage(pr, page))
-//                }
-//            }
-//            document.close()
-//            launch(UI){
-//                dialog.dismiss()
-//            }
-//        }
     }
 
     fun creatingPdf(fileName:String, imageUri:ArrayList<String>){
