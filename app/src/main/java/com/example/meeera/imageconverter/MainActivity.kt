@@ -35,7 +35,9 @@ import com.vincent.filepicker.Constant
 import com.vincent.filepicker.activity.NormalFilePickActivity
 import com.vincent.filepicker.filter.entity.NormalFile
 import kotlinx.android.synthetic.main.activity_main_new.*
+import kotlinx.coroutines.experimental.CommonPool
 import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.newFixedThreadPoolContext
 import java.io.ByteArrayOutputStream
@@ -407,35 +409,35 @@ class MainActivity : AppCompatActivity() {
         var dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        launch(Background) {
-            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-            var storageDir = File(path)
-            if(!storageDir.exists()) {
-                storageDir.mkdirs()
-            }
-            path = path+fileName+".pdf"
-            var file = File(path)
-            var document = Document()
-            var fileOutStream = FileOutputStream(file)
-            var copy = PdfCopy(document, fileOutStream)
-            document.open()
-            var n = 0
-            for(i in 0 until pdfUri.size){
-                var pr = PdfReader(pdfUri.get(i))
-                n = pr.numberOfPages
-                for (page in 1 until n+1){
-                    copy.addPage(copy.getImportedPage(pr, page))
+        async(UI){
+            val job = async(CommonPool){
+                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+                var storageDir = File(path)
+                if(!storageDir.exists()) {
+                    storageDir.mkdirs()
                 }
+                path = path+fileName+".pdf"
+                var file = File(path)
+                var document = Document()
+                var fileOutStream = FileOutputStream(file)
+                var copy = PdfCopy(document, fileOutStream)
+                document.open()
+                var n = 0
+                for(i in 0 until pdfUri.size){
+                    var pr = PdfReader(pdfUri.get(i))
+                    n = pr.numberOfPages
+                    for (page in 1 until n+1){
+                        copy.addPage(copy.getImportedPage(pr, page))
+                    }
+                }
+                document.close()
             }
-            document.close()
-            launch(UI){
-                dialog.dismiss()
-            }
+            job.await()
+            dialog.dismiss()
         }
 
-//        var task1 = Task<Boolean>(true)
-//        task1.callInBackground({
-//           var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+//        launch(Background) {
+//            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
 //            var storageDir = File(path)
 //            if(!storageDir.exists()) {
 //                storageDir.mkdirs()
@@ -455,10 +457,10 @@ class MainActivity : AppCompatActivity() {
 //                }
 //            }
 //            document.close()
-//        }).onSuccess({
-//            Log.d("success ", "merged pdf")
-//            dialog.dismiss()
-//        })
+//            launch(UI){
+//                dialog.dismiss()
+//            }
+//        }
     }
 
     fun creatingPdf(fileName:String, imageUri:ArrayList<String>){
