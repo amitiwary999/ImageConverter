@@ -53,24 +53,24 @@ kotlin {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile 'com.android.support:appcompat-v7:25.3.1'
-    compile 'com.android.support.constraint:constraint-layout:1.0.2'
-    compile 'com.github.ParkSangGwon:TedPicker:v1.0.10'
-    testCompile 'junit:junit:4.12'
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    compile "org.apache.commons:commons-io:1.3.2"
-    compile "com.vincent.filepicker:MultiTypeFilePicker:1.0.4"
-    compile('com.github.afollestad.material-dialogs:core:0.8.5.4@aar') {
+    implementation 'com.android.support:appcompat-v7:25.3.1'
+    implementation 'com.android.support.constraint:constraint-layout:1.0.2'
+    implementation 'com.github.ParkSangGwon:TedPicker:v1.0.10'
+    testImplementation 'junit:junit:4.12'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation "org.apache.commons:commons-io:1.3.2"
+    implementation "com.vincent.filepicker:MultiTypeFilePicker:1.0.4"
+    implementation('com.github.afollestad.material-dialogs:core:0.8.5.4@aar') {
         transitive = true
     }
-    compile 'com.itextpdf:itextg:5.5.9'
-    compile group: 'org.apache.pdfbox', name : 'pdfbox-tools', version : '2.0.0-RC1'
-    compile 'com.github.barteksc:pdfium-android:1.8.2'
-    compile project(":bolts-tasks")
-    compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.20"
-    compile "org.jetbrains.kotlinx:kotlinx-coroutines-android:0.20"
+    implementation 'com.itextpdf:itextg:5.5.9'
+    implementation group: 'org.apache.pdfbox', name : 'pdfbox-tools', version : '2.0.0-RC1'
+    implementation 'com.github.barteksc:pdfium-android:1.8.2'
+    implementation project(":bolts-tasks")
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.20"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:0.20"
 }
