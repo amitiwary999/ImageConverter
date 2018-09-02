@@ -45,6 +45,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
 import java.util.concurrent.Callable
+import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.experimental.intrinsics.suspendCoroutineOrReturn
 
 class MainActivity : AppCompatActivity() {
 
@@ -454,7 +456,7 @@ class MainActivity : AppCompatActivity() {
                 if(!folder.exists()){
                     var success = folder.mkdir()
                     if(!success){
-                        Toast.makeText(this, " can't create file", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(coroutineContext(), " can't create file", Toast.LENGTH_SHORT).show()
                     }
                 }
                 path = path + fileName + ".pdf"
@@ -465,7 +467,7 @@ class MainActivity : AppCompatActivity() {
                 document.open()
                 try {
                     for (i in 0 until imageUri.size ) {
-                        var bmp = MediaStore.Images.Media.getBitmap(this.contentResolver,
+                        var bmp = MediaStore.Images.Media.getBitmap(coroutineContext().contentResolver,
                                 Uri.fromFile(File(imageUri[i])))
                         bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
                         var image = Image.getInstance(imageUri[i])
@@ -486,51 +488,53 @@ class MainActivity : AppCompatActivity() {
                     document.close()
                 }
             }
-        }
-        var task = Task<Boolean>(true)
-        task.callInBackground({
-            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
-            var folder = File(path)
-            if(!folder.exists()){
-                var success = folder.mkdir()
-                if(!success){
-                    Toast.makeText(this, " can't create file", Toast.LENGTH_SHORT).show()
-                }
-            }
-            path = path + fileName + ".pdf"
-
-            var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
-            var documentRect = document.pageSize
-            var writer = PdfWriter.getInstance(document, FileOutputStream(path))
-            document.open()
-            try {
-                for (i in 0 until imageUri.size ) {
-                    var bmp = MediaStore.Images.Media.getBitmap(this.contentResolver,
-                            Uri.fromFile(File(imageUri[i])))
-                    bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
-                    var image = Image.getInstance(imageUri[i])
-                    if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
-                        image.scaleAbsolute(documentRect.width, documentRect.height)
-                    } else {
-                        image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
-                    }
-                    image.setAbsolutePosition((documentRect.width - image.scaledWidth) / 2, (documentRect.height - image.scaledHeight) / 2)
-                    image.border = Image.BOX
-                    image.borderWidth = 15f
-                    document.add(image)
-                    document.newPage()
-                }
-                document.close()
-            } catch (e:Exception){
-                e.printStackTrace()
-                document.close()
-            }
-        }).onSuccess({
+            job.await()
             dialog.dismiss()
-            Log.d("success ", "pdf created")
-            MainActivity().imageUri.clear()
-            MainActivity().pdfUri.clear()
-        })
+        }
+//        var task = Task<Boolean>(true)
+//        task.callInBackground({
+//            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+//            var folder = File(path)
+//            if(!folder.exists()){
+//                var success = folder.mkdir()
+//                if(!success){
+//                    Toast.makeText(this, " can't create file", Toast.LENGTH_SHORT).show()
+//                }
+//            }
+//            path = path + fileName + ".pdf"
+//
+//            var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+//            var documentRect = document.pageSize
+//            var writer = PdfWriter.getInstance(document, FileOutputStream(path))
+//            document.open()
+//            try {
+//                for (i in 0 until imageUri.size ) {
+//                    var bmp = MediaStore.Images.Media.getBitmap(this.contentResolver,
+//                            Uri.fromFile(File(imageUri[i])))
+//                    bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
+//                    var image = Image.getInstance(imageUri[i])
+//                    if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
+//                        image.scaleAbsolute(documentRect.width, documentRect.height)
+//                    } else {
+//                        image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
+//                    }
+//                    image.setAbsolutePosition((documentRect.width - image.scaledWidth) / 2, (documentRect.height - image.scaledHeight) / 2)
+//                    image.border = Image.BOX
+//                    image.borderWidth = 15f
+//                    document.add(image)
+//                    document.newPage()
+//                }
+//                document.close()
+//            } catch (e:Exception){
+//                e.printStackTrace()
+//                document.close()
+//            }
+//        }).onSuccess({
+//            dialog.dismiss()
+//            Log.d("success ", "pdf created")
+//            MainActivity().imageUri.clear()
+//            MainActivity().pdfUri.clear()
+//        })
     }
 
     fun creatingDocPdf(fileName:String, docUri:ArrayList<String>){
@@ -614,4 +618,7 @@ class MainActivity : AppCompatActivity() {
             dialog.dismiss()
         })
     }
+
+    suspend fun coroutineContext(): Context =
+            suspendCoroutineOrReturn { cont -> cont.context }
 }
