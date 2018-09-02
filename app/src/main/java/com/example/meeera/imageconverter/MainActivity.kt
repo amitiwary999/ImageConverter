@@ -108,13 +108,14 @@ class MainActivity : AppCompatActivity() {
                 if(!listPermissionNeeded.isEmpty()){
                     ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS)
                 } else{
-                var uri: ArrayList<Uri> = ArrayList(tempUri.size)
-                for (stringUri in tempUri) {
+                    var intent = Intent(this, ImagePickerActivity::class.java)
+                    var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+                    for (stringUri in tempUri) {
                     uri.add(Uri.fromFile(File(stringUri)))
+                    }
+                    intent.putExtra(ImagePickerActivity.EXTRA_IMAGE_URIS, uri)
+                    startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
                 }
-                intent.putExtra(ImagePickerActivity.EXTRA_IMAGE_URIS, uri)
-                startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
-            }
         } else {
             var intent = Intent(this, ImagePickerActivity::class.java)
             var uri: ArrayList<Uri> = ArrayList(tempUri.size)
@@ -439,9 +440,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun creatingPdf(fileName:String, imageUri:ArrayList<String>){
+    fun creatingPdf(fileName:String, uri:ArrayList<String>){
         var fileName : String = fileName
-        var imageUri : ArrayList<String> = imageUri
+        var imageUriInternal : ArrayList<String> = uri
         var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
@@ -456,7 +457,7 @@ class MainActivity : AppCompatActivity() {
                 if(!folder.exists()){
                     var success = folder.mkdir()
                     if(!success){
-                        Toast.makeText(coroutineContext(), " can't create file", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(baseContext, " can't create file", Toast.LENGTH_SHORT).show()
                     }
                 }
                 path = path + fileName + ".pdf"
@@ -466,11 +467,11 @@ class MainActivity : AppCompatActivity() {
                 var writer = PdfWriter.getInstance(document, FileOutputStream(path))
                 document.open()
                 try {
-                    for (i in 0 until imageUri.size ) {
-                        var bmp = MediaStore.Images.Media.getBitmap(coroutineContext().contentResolver,
-                                Uri.fromFile(File(imageUri[i])))
+                    for (i in 0 until imageUriInternal.size ) {
+                        var bmp = MediaStore.Images.Media.getBitmap(baseContext.contentResolver,
+                                Uri.fromFile(File(imageUriInternal[i])))
                         bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
-                        var image = Image.getInstance(imageUri[i])
+                        var image = Image.getInstance(imageUriInternal[i])
                         if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
                             image.scaleAbsolute(documentRect.width, documentRect.height)
                         } else {
@@ -490,56 +491,14 @@ class MainActivity : AppCompatActivity() {
             }
             job.await()
             dialog.dismiss()
+            imageUri.clear()
+            pdfUri.clear()
         }
-//        var task = Task<Boolean>(true)
-//        task.callInBackground({
-//            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
-//            var folder = File(path)
-//            if(!folder.exists()){
-//                var success = folder.mkdir()
-//                if(!success){
-//                    Toast.makeText(this, " can't create file", Toast.LENGTH_SHORT).show()
-//                }
-//            }
-//            path = path + fileName + ".pdf"
-//
-//            var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
-//            var documentRect = document.pageSize
-//            var writer = PdfWriter.getInstance(document, FileOutputStream(path))
-//            document.open()
-//            try {
-//                for (i in 0 until imageUri.size ) {
-//                    var bmp = MediaStore.Images.Media.getBitmap(this.contentResolver,
-//                            Uri.fromFile(File(imageUri[i])))
-//                    bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
-//                    var image = Image.getInstance(imageUri[i])
-//                    if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
-//                        image.scaleAbsolute(documentRect.width, documentRect.height)
-//                    } else {
-//                        image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
-//                    }
-//                    image.setAbsolutePosition((documentRect.width - image.scaledWidth) / 2, (documentRect.height - image.scaledHeight) / 2)
-//                    image.border = Image.BOX
-//                    image.borderWidth = 15f
-//                    document.add(image)
-//                    document.newPage()
-//                }
-//                document.close()
-//            } catch (e:Exception){
-//                e.printStackTrace()
-//                document.close()
-//            }
-//        }).onSuccess({
-//            dialog.dismiss()
-//            Log.d("success ", "pdf created")
-//            MainActivity().imageUri.clear()
-//            MainActivity().pdfUri.clear()
-//        })
     }
 
-    fun creatingDocPdf(fileName:String, docUri:ArrayList<String>){
+    fun creatingDocPdf(fileName:String, uri:ArrayList<String>){
         var fileName : String = fileName
-        var imageUri : ArrayList<String> = docUri
+        var imageUri : ArrayList<String> = uri
         var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
@@ -547,30 +506,29 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         var dialog : MaterialDialog = builder.build()
         dialog.show()
-        var task = Task<Boolean>(true)
-        task.callInBackground({
-            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
-            path = path + fileName + ".pdf"
-            var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
-            var writer = PdfWriter.getInstance(document, FileOutputStream(path))
-            document.open()
-            try {
-                for(i in 0 until imageUri.size){
-                    document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]), "UTF-8")))
-                    document.newPage()
+        async(UI) {
+            val job = async(CommonPool) {
+                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+                path = path + fileName + ".pdf"
+                var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+                var writer = PdfWriter.getInstance(document, FileOutputStream(path))
+                document.open()
+                try {
+                    for(i in 0 until imageUri.size){
+                        document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]), "UTF-8")))
+                        document.newPage()
+                    }
+                    document.close()
+                }catch(e : Exception){
+                    e.printStackTrace()
+                    document.close()
                 }
-                document.close()
-            }catch(e : Exception){
-                e.printStackTrace()
-                document.close()
             }
-        }).onSuccess({
+            job.await()
             dialog.dismiss()
-            Log.d("success ", "pdf created")
-            MainActivity().docUri.clear()
-            MainActivity().tempDocUri.clear()
-        })
-
+            docUri.clear()
+            tempDocUri.clear()
+        }
     }
 
     fun creatingPdfImg(fileName:String, pdfUri:ArrayList<String>){
@@ -583,42 +541,43 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         var dialog : MaterialDialog = builder.build()
         dialog.show()
-        var task = Task<Boolean>(true)
-        task.callInBackground({
-            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
-            var storageDir = File(path)
-            if(!storageDir.exists()) {
-                storageDir.mkdirs()
-            }
 
-            for (i in 0 until pdfUri.size){
-                var file = File(pdfUri[i])
-                var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                var pdfiumCore = PdfiumCore(this)
-                var pdfDocument = pdfiumCore.newDocument(fileDescriptor)
-                for (page in 0 until pdfiumCore.getPageCount(pdfDocument)) {
-                    var pathFile = File(path, fileName + page + ".png")
-                    pdfiumCore.openPage(pdfDocument, page)
-                    val width = pdfiumCore.getPageWidthPoint(pdfDocument, page)
-                    val height = pdfiumCore.getPageHeightPoint(pdfDocument, page)
-                    var bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                    pdfiumCore.renderPageBitmap(pdfDocument, bitmap, page, 0, 0, width, height)
-                    var out = FileOutputStream(pathFile)
-                    var bos = BufferedOutputStream(out)
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
-                    Log.d("amit1", "bitmap " + bitmap)
-                    bos.flush()
-                    bos.close()
+        async(UI) {
+            val job = async(CommonPool){
+                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
+                var storageDir = File(path)
+                if(!storageDir.exists()) {
+                    storageDir.mkdirs()
                 }
-                pdfiumCore.closeDocument(pdfDocument)
-                fileDescriptor.close()
+
+                for (i in 0 until pdfUri.size){
+                    var file = File(pdfUri[i])
+                    var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                    var pdfiumCore = PdfiumCore(baseContext)
+                    var pdfDocument = pdfiumCore.newDocument(fileDescriptor)
+                    for (page in 0 until pdfiumCore.getPageCount(pdfDocument)) {
+                        var pathFile = File(path, fileName + page + ".png")
+                        pdfiumCore.openPage(pdfDocument, page)
+                        val width = pdfiumCore.getPageWidthPoint(pdfDocument, page)
+                        val height = pdfiumCore.getPageHeightPoint(pdfDocument, page)
+                        var bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                        pdfiumCore.renderPageBitmap(pdfDocument, bitmap, page, 0, 0, width, height)
+                        var out = FileOutputStream(pathFile)
+                        var bos = BufferedOutputStream(out)
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
+                        Log.d("amit1", "bitmap " + bitmap)
+                        bos.flush()
+                        bos.close()
+                    }
+                    pdfiumCore.closeDocument(pdfDocument)
+                    fileDescriptor.close()
+                }
             }
-        }).onSuccess({
-            Log.d("success ", "pdf to img change")
+            job.await()
             dialog.dismiss()
-        })
+        }
     }
 
-    suspend fun coroutineContext(): Context =
-            suspendCoroutineOrReturn { cont -> cont.context }
+//    suspend fun coroutineContext(): Context =
+//            suspendCoroutineOrReturn { cont -> cont.context }
 }
