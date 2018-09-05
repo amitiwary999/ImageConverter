@@ -414,8 +414,8 @@ class MainActivity : AppCompatActivity() {
                 if(!storageDir.exists()) {
                     storageDir.mkdirs()
                 }
-                path = path+fileName+".pdf"
-                val file = File(path)
+                val storeFileName = fileName+".pdf"
+                val file = File(storageDir, storeFileName)
                 val document = Document()
                 val fileOutStream = FileOutputStream(file)
                 val copy = PdfCopy(document, fileOutStream)
@@ -436,7 +436,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun creatingPdf(fileName:String, uri:ArrayList<String>){
-        val fileName : String = fileName
+        var fileName : String = fileName
         val imageUriInternal : ArrayList<String> = uri
         val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
@@ -447,7 +447,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
         async(UI) {
             val job = async(CommonPool){
-                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+                val path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
                 val folder = File(path)
                 if(!folder.exists()){
                     val success = folder.mkdir()
@@ -455,11 +455,12 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(baseContext, " can't create file", Toast.LENGTH_SHORT).show()
                     }
                 }
-                path = path + fileName + ".pdf"
+                fileName = fileName + ".pdf"
+                val storePath = File(folder, fileName)
 
                 val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
                 val documentRect = document.pageSize
-                var writer = PdfWriter.getInstance(document, FileOutputStream(path))
+                var writer = PdfWriter.getInstance(document, FileOutputStream(storePath))
                 document.open()
                 try {
                     for (i in 0 until imageUriInternal.size ) {
