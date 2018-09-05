@@ -16,11 +16,7 @@ import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.util.Log
-import android.widget.ImageView
 import android.widget.Toast
-import bolts.Continuation
-import bolts.Task
-import bolts.Task.call
 import com.afollestad.materialdialogs.MaterialDialog
 import com.gun0912.tedpicker.ImagePickerActivity
 import com.itextpdf.text.Document
@@ -51,51 +47,50 @@ import kotlin.coroutines.experimental.intrinsics.suspendCoroutineOrReturn
 class MainActivity : AppCompatActivity() {
 
     private val INTENT_REQUEST_GET_IMAGES = 11
-    val REQUEST_GET_PDF = 2
-    val REQUEST_ID_MULTIPLE_PERMISSIONS = 1
-    val REQUEST_ID_MULTIPLE_PERMISSIONS1 = 2
-    val REQUEST_ID_MULTIPLE_PERMISSIONS2 = 3
-    var tempUri : ArrayList<String> = ArrayList()
-    var tempDocUri : ArrayList<String> = ArrayList()
-    var tempPdfUri : ArrayList<String> = ArrayList()
-    var docUri : ArrayList<String> = ArrayList()
-    var pdfUri : ArrayList<String> = ArrayList()
-    var imageUri : ArrayList<String> = ArrayList()
+    private val REQUEST_GET_PDF = 2
+    private val REQUEST_ID_MULTIPLE_PERMISSIONS = 1
+    private val REQUEST_ID_MULTIPLE_PERMISSIONS1 = 2
+    private val REQUEST_ID_MULTIPLE_PERMISSIONS2 = 3
+    private var tempUri : ArrayList<String> = ArrayList()
+    private var tempDocUri : ArrayList<String> = ArrayList()
+    private var tempPdfUri : ArrayList<String> = ArrayList()
+    private var docUri : ArrayList<String> = ArrayList()
+    private var pdfUri : ArrayList<String> = ArrayList()
+    private var imageUri : ArrayList<String> = ArrayList()
     var fileName : String = ""
-    var docFilePath : String ?= null
     internal val Background = newFixedThreadPoolContext(2, "bg")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_new)
-        select.setOnClickListener({
+        select.setOnClickListener{
             selectImage()
-        })
-        pdf.setOnClickListener({
+        }
+        pdf.setOnClickListener{
             createImagePdf()
-        })
-        doc.setOnClickListener({
+        }
+        doc.setOnClickListener{
             selectDoc()
-        })
-        docpdf.setOnClickListener({
+        }
+        docpdf.setOnClickListener{
             createDocPdf()
-        })
-        selectpdf.setOnClickListener({
+        }
+        selectpdf.setOnClickListener{
             selectPdf()
-        })
-        pdfimg.setOnClickListener({
+        }
+        pdfimg.setOnClickListener{
             createImage()
-        })
-        mergepdf.setOnClickListener({
+        }
+        mergepdf.setOnClickListener{
             mergePdf()
-        })
+        }
     }
 
-    fun selectImage(){
+    private fun selectImage(){
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                var permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
-                var permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                var permissionCamera = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.CAMERA)
-                var listPermissionNeeded : ArrayList<String> = ArrayList<String>()
+                val permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
+                val permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                val permissionCamera = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.CAMERA)
+                val listPermissionNeeded : ArrayList<String> = ArrayList<String>()
                 if(permissionWriteStorage != PackageManager.PERMISSION_GRANTED){
                     listPermissionNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE)
                 }
@@ -108,8 +103,8 @@ class MainActivity : AppCompatActivity() {
                 if(!listPermissionNeeded.isEmpty()){
                     ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS)
                 } else{
-                    var intent = Intent(this, ImagePickerActivity::class.java)
-                    var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+                    val intent = Intent(this, ImagePickerActivity::class.java)
+                    val uri: ArrayList<Uri> = ArrayList(tempUri.size)
                     for (stringUri in tempUri) {
                     uri.add(Uri.fromFile(File(stringUri)))
                     }
@@ -117,8 +112,8 @@ class MainActivity : AppCompatActivity() {
                     startActivityForResult(intent, INTENT_REQUEST_GET_IMAGES)
                 }
         } else {
-            var intent = Intent(this, ImagePickerActivity::class.java)
-            var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+            val intent = Intent(this, ImagePickerActivity::class.java)
+            val uri: ArrayList<Uri> = ArrayList(tempUri.size)
             for (stringUri in tempUri) {
                 uri.add(Uri.fromFile(File(stringUri)))
             }
@@ -128,7 +123,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    fun createImagePdf(){
+    private fun createImagePdf(){
         if(imageUri.size == 0){
             if(tempUri.size == 0){
                 Toast.makeText(this, "No images selected", Toast.LENGTH_LONG).show()
@@ -151,12 +146,12 @@ class MainActivity : AppCompatActivity() {
              }).show()
     }
 
-    fun selectDoc(){
+    private fun selectDoc(){
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            var permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
-            var permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            val permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
+            val permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
-            var listPermissionNeeded: ArrayList<String> = ArrayList<String>()
+            val listPermissionNeeded: ArrayList<String> = ArrayList<String>()
             if (permissionWriteStorage != PackageManager.PERMISSION_GRANTED) {
                 listPermissionNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
@@ -167,23 +162,23 @@ class MainActivity : AppCompatActivity() {
             if (!listPermissionNeeded.isEmpty()) {
                 ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS1)
             } else {
-                var intent = Intent(this, NormalFilePickActivity::class.java)
+                val intent = Intent(this, NormalFilePickActivity::class.java)
                 intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
                 startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
             }
         } else {
-            var intent = Intent(this, NormalFilePickActivity::class.java)
+            val intent = Intent(this, NormalFilePickActivity::class.java)
             intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
             startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
         }
     }
 
-    fun selectPdf(){
+    private fun selectPdf(){
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                var permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
-                var permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                val permissionReadStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.READ_EXTERNAL_STORAGE)
+                val permissionWriteStorage = ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
-                var listPermissionNeeded: ArrayList<String> = ArrayList<String>()
+                val listPermissionNeeded: ArrayList<String> = ArrayList<String>()
                 if (permissionWriteStorage != PackageManager.PERMISSION_GRANTED) {
                     listPermissionNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE)
                 }
@@ -194,18 +189,18 @@ class MainActivity : AppCompatActivity() {
                 if (!listPermissionNeeded.isEmpty()) {
                     ActivityCompat.requestPermissions(this, listPermissionNeeded.toArray(arrayOfNulls(listPermissionNeeded.size)), REQUEST_ID_MULTIPLE_PERMISSIONS2)
                 } else {
-                    var intent = Intent(this, NormalFilePickActivity::class.java)
+                    val intent = Intent(this, NormalFilePickActivity::class.java)
                     intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
                     startActivityForResult(intent, REQUEST_GET_PDF)
                 }
             } else {
-                var intent = Intent(this, NormalFilePickActivity::class.java)
+                val intent = Intent(this, NormalFilePickActivity::class.java)
                 intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
                 startActivityForResult(intent, REQUEST_GET_PDF)
             }
     }
 
-    fun createImage(){
+    private fun createImage(){
         if(tempPdfUri.size == 0){
             Toast.makeText(this, "No pdf selected", Toast.LENGTH_LONG).show()
         }else{
@@ -225,7 +220,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun createDocPdf(){
+    private fun createDocPdf(){
         if(tempDocUri.size == 0) {
             Toast.makeText(this, "No doc selected", Toast.LENGTH_LONG).show()
         }else{
@@ -245,7 +240,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun mergePdf(){
+    private fun mergePdf(){
         if(tempPdfUri.size == 0){
             Toast.makeText(this, "No pdf selected", Toast.LENGTH_LONG).show()
         }else{
@@ -269,7 +264,7 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if(requestCode == INTENT_REQUEST_GET_IMAGES && resultCode == Activity.RESULT_OK) {
             tempUri.clear()
-            var imageUri: ArrayList<Uri> = data!!.getParcelableArrayListExtra(ImagePickerActivity.EXTRA_IMAGE_URIS)
+            val imageUri: ArrayList<Uri> = data!!.getParcelableArrayListExtra(ImagePickerActivity.EXTRA_IMAGE_URIS)
             for (i in imageUri.indices) {
                 tempUri.add(imageUri[i].path)
             }
@@ -277,7 +272,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if(requestCode == Constant.REQUEST_CODE_PICK_FILE && resultCode == Activity.RESULT_OK){
-            var list : ArrayList<NormalFile> = data!!.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE)
+            val list : ArrayList<NormalFile> = data!!.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE)
             for(i in list.indices){
                 tempDocUri.add(list[i].path)
             }
@@ -285,7 +280,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if(requestCode == REQUEST_GET_PDF && resultCode == Activity.RESULT_OK){
-            var list : ArrayList<NormalFile> = data!!.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE)
+            val list : ArrayList<NormalFile> = data!!.getParcelableArrayListExtra(Constant.RESULT_PICK_FILE)
             for(i in list.indices){
                 tempPdfUri.add(list[i].path)
             }
@@ -301,12 +296,12 @@ class MainActivity : AppCompatActivity() {
                 perms.put(Manifest.permission.READ_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
                 perms.put(Manifest.permission.WRITE_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
                 perms.put(Manifest.permission.CAMERA, PackageManager.PERMISSION_GRANTED)
-                if (grantResults.size > 0) {
+                if (grantResults.isNotEmpty()) {
                     if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
                             perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
                             perms.get(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                        var intent = Intent(this, ImagePickerActivity::class.java)
-                        var uri: ArrayList<Uri> = ArrayList(tempUri.size)
+                        val intent = Intent(this, ImagePickerActivity::class.java)
+                        val uri: ArrayList<Uri> = ArrayList(tempUri.size)
                         for (stringUri in tempUri) {
                             uri.add(Uri.fromFile(File(stringUri)))
                         }
@@ -336,10 +331,10 @@ class MainActivity : AppCompatActivity() {
                 val perms: HashMap<String, Int> = HashMap()
                 perms.put(Manifest.permission.READ_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
                 perms.put(Manifest.permission.WRITE_EXTERNAL_STORAGE, PackageManager.PERMISSION_GRANTED)
-                if (grantResults.size > 0) {
+                if (grantResults.isNotEmpty()) {
                     if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
                             perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                        var intent = Intent(this, NormalFilePickActivity::class.java)
+                        val intent = Intent(this, NormalFilePickActivity::class.java)
                         intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("doc"))
                         startActivityForResult(intent, Constant.REQUEST_CODE_PICK_FILE)
                     } else {
@@ -368,7 +363,7 @@ class MainActivity : AppCompatActivity() {
                 if (grantResults.size > 0) {
                     if (perms.get(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
                             perms.get(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                        var intent = Intent(this, NormalFilePickActivity::class.java)
+                        val intent = Intent(this, NormalFilePickActivity::class.java)
                         intent.putExtra(NormalFilePickActivity.SUFFIX, arrayOf("pdf"))
                         startActivityForResult(intent, REQUEST_GET_PDF)
                     } else {
@@ -393,7 +388,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun showDialogOK(message : String, okListener : DialogInterface.OnClickListener) {
+    private fun showDialogOK(message : String, okListener : DialogInterface.OnClickListener) {
         AlertDialog.Builder(this)
                 .setMessage(message)
                 .setPositiveButton("OK", okListener)
@@ -402,32 +397,32 @@ class MainActivity : AppCompatActivity() {
                 .show()
     }
 
-    fun mergePDF(fileName:String, pdfUri:ArrayList<String>){
+    private fun mergePDF(fileName:String, pdfUri:ArrayList<String>){
 
-        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+        val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
                 .cancelable(false)
                 .progress(true, 0)
-        var dialog : MaterialDialog = builder.build()
+        val dialog : MaterialDialog = builder.build()
         dialog.show()
 
         async(UI){
             val job = async(CommonPool){
                 var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-                var storageDir = File(path)
+                val storageDir = File(path)
                 if(!storageDir.exists()) {
                     storageDir.mkdirs()
                 }
                 path = path+fileName+".pdf"
-                var file = File(path)
-                var document = Document()
-                var fileOutStream = FileOutputStream(file)
-                var copy = PdfCopy(document, fileOutStream)
+                val file = File(path)
+                val document = Document()
+                val fileOutStream = FileOutputStream(file)
+                val copy = PdfCopy(document, fileOutStream)
                 document.open()
                 var n = 0
                 for(i in 0 until pdfUri.size){
-                    var pr = PdfReader(pdfUri.get(i))
+                    val pr = PdfReader(pdfUri.get(i))
                     n = pr.numberOfPages
                     for (page in 1 until n+1){
                         copy.addPage(copy.getImportedPage(pr, page))
@@ -440,38 +435,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun creatingPdf(fileName:String, uri:ArrayList<String>){
-        var fileName : String = fileName
-        var imageUriInternal : ArrayList<String> = uri
-        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+    private fun creatingPdf(fileName:String, uri:ArrayList<String>){
+        val fileName : String = fileName
+        val imageUriInternal : ArrayList<String> = uri
+        val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
                 .cancelable(false)
                 .progress(true, 0)
-        var dialog : MaterialDialog = builder.build()
+        val dialog : MaterialDialog = builder.build()
         dialog.show()
         async(UI) {
             val job = async(CommonPool){
                 var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
-                var folder = File(path)
+                val folder = File(path)
                 if(!folder.exists()){
-                    var success = folder.mkdir()
+                    val success = folder.mkdir()
                     if(!success){
                         Toast.makeText(baseContext, " can't create file", Toast.LENGTH_SHORT).show()
                     }
                 }
                 path = path + fileName + ".pdf"
 
-                var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
-                var documentRect = document.pageSize
+                val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+                val documentRect = document.pageSize
                 var writer = PdfWriter.getInstance(document, FileOutputStream(path))
                 document.open()
                 try {
                     for (i in 0 until imageUriInternal.size ) {
-                        var bmp = MediaStore.Images.Media.getBitmap(baseContext.contentResolver,
+                        val bmp = MediaStore.Images.Media.getBitmap(baseContext.contentResolver,
                                 Uri.fromFile(File(imageUriInternal[i])))
                         bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
-                        var image = Image.getInstance(imageUriInternal[i])
+                        val image = Image.getInstance(imageUriInternal[i])
                         if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
                             image.scaleAbsolute(documentRect.width, documentRect.height)
                         } else {
@@ -496,21 +491,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun creatingDocPdf(fileName:String, uri:ArrayList<String>){
-        var fileName : String = fileName
-        var imageUri : ArrayList<String> = uri
-        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+    private fun creatingDocPdf(fileName:String, uri:ArrayList<String>){
+        val fileName : String = fileName
+        val imageUri : ArrayList<String> = uri
+        val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
                 .cancelable(false)
                 .progress(true, 0)
-        var dialog : MaterialDialog = builder.build()
+        val dialog : MaterialDialog = builder.build()
         dialog.show()
         async(UI) {
             val job = async(CommonPool) {
                 var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
                 path = path + fileName + ".pdf"
-                var document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+                val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
                 var writer = PdfWriter.getInstance(document, FileOutputStream(path))
                 document.open()
                 try {
@@ -531,39 +526,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun creatingPdfImg(fileName:String, pdfUri:ArrayList<String>){
-        var fileName : String = fileName
-        var pdfUri : ArrayList<String> = pdfUri
-        var builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
+    private fun creatingPdfImg(fileName:String, pdfUri:ArrayList<String>){
+        val fileName : String = fileName
+        val pdfUri : ArrayList<String> = pdfUri
+        val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
                 .cancelable(false)
                 .progress(true, 0)
-        var dialog : MaterialDialog = builder.build()
+        val dialog : MaterialDialog = builder.build()
         dialog.show()
 
         async(UI) {
             val job = async(CommonPool){
-                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
-                var storageDir = File(path)
+                val path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
+                val storageDir = File(path)
                 if(!storageDir.exists()) {
                     storageDir.mkdirs()
                 }
 
                 for (i in 0 until pdfUri.size){
-                    var file = File(pdfUri[i])
-                    var fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                    var pdfiumCore = PdfiumCore(baseContext)
-                    var pdfDocument = pdfiumCore.newDocument(fileDescriptor)
+                    val file = File(pdfUri[i])
+                    val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                    val pdfiumCore = PdfiumCore(baseContext)
+                    val pdfDocument = pdfiumCore.newDocument(fileDescriptor)
                     for (page in 0 until pdfiumCore.getPageCount(pdfDocument)) {
-                        var pathFile = File(path, fileName + page + ".png")
+                        val pathFile = File(path, fileName + page + ".png")
                         pdfiumCore.openPage(pdfDocument, page)
                         val width = pdfiumCore.getPageWidthPoint(pdfDocument, page)
                         val height = pdfiumCore.getPageHeightPoint(pdfDocument, page)
-                        var bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
                         pdfiumCore.renderPageBitmap(pdfDocument, bitmap, page, 0, 0, width, height)
-                        var out = FileOutputStream(pathFile)
-                        var bos = BufferedOutputStream(out)
+                        val out = FileOutputStream(pathFile)
+                        val bos = BufferedOutputStream(out)
                         bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
                         Log.d("amit1", "bitmap " + bitmap)
                         bos.flush()
