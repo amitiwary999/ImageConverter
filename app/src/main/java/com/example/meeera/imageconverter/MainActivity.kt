@@ -31,11 +31,8 @@ import com.vincent.filepicker.Constant
 import com.vincent.filepicker.activity.NormalFilePickActivity
 import com.vincent.filepicker.filter.entity.NormalFile
 import kotlinx.android.synthetic.main.activity_main_new.*
-import kotlinx.coroutines.experimental.CommonPool
+import kotlinx.coroutines.experimental.*
 import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.newFixedThreadPoolContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -57,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     private var docUri : ArrayList<String> = ArrayList()
     private var pdfUri : ArrayList<String> = ArrayList()
     private var imageUri : ArrayList<String> = ArrayList()
+    private var deferredList : ArrayList<Deferred<Unit>> = ArrayList()
     var fileName : String = ""
     internal val Background = newFixedThreadPoolContext(2, "bg")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -431,6 +429,7 @@ class MainActivity : AppCompatActivity() {
                 document.close()
             }
             job.await()
+            deferredList.add(job)
             dialog.dismiss()
         }
     }
@@ -486,6 +485,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             job.await()
+            deferredList.add(job)
             dialog.dismiss()
             imageUri.clear()
             pdfUri.clear()
@@ -521,6 +521,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             job.await()
+            deferredList.add(job)
             dialog.dismiss()
             docUri.clear()
             tempDocUri.clear()
@@ -570,8 +571,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             job.await()
+            deferredList.add(job)
             dialog.dismiss()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        for (i in 0 until deferredList.size)
+            deferredList.get(i).cancel()
+        deferredList.clear()
     }
 
 //    suspend fun coroutineContext(): Context =
