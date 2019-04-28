@@ -31,15 +31,11 @@ import com.vincent.filepicker.Constant
 import com.vincent.filepicker.activity.NormalFilePickActivity
 import com.vincent.filepicker.filter.entity.NormalFile
 import kotlinx.android.synthetic.main.activity_main_new.*
-import kotlinx.coroutines.experimental.*
-import kotlinx.coroutines.experimental.android.UI
+import kotlinx.coroutines.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
-import java.util.concurrent.Callable
-import kotlin.coroutines.experimental.CoroutineContext
-import kotlin.coroutines.experimental.intrinsics.suspendCoroutineOrReturn
 
 class MainActivity : AppCompatActivity() {
 
@@ -405,8 +401,8 @@ class MainActivity : AppCompatActivity() {
         val dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        async(UI){
-            val job = async(CommonPool){
+        GlobalScope.async(Dispatchers.Main){
+            val job = async(Dispatchers.Default){
                 var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
                 val storageDir = File(path)
                 if(!storageDir.exists()) {
@@ -444,8 +440,8 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
         dialog.show()
-        async(UI) {
-            val job = async(CommonPool){
+        GlobalScope.async(Dispatchers.Main) {
+            val job = async(Dispatchers.Default){
                 val path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
                 val folder = File(path)
                 if(!folder.exists()){
@@ -502,8 +498,8 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
         dialog.show()
-        async(UI) {
-            val job = async(CommonPool) {
+        GlobalScope.async(Dispatchers.Main) {
+            val job = async(Dispatchers.Default) {
                 var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
                 path = path + fileName + ".pdf"
                 val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
@@ -539,8 +535,8 @@ class MainActivity : AppCompatActivity() {
         val dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        async(UI) {
-            val job = async(CommonPool){
+        GlobalScope.async(Dispatchers.Main) {
+            val job = async(Dispatchers.Default){
                 val path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
                 val storageDir = File(path)
                 if(!storageDir.exists()) {
