@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
     private var docUri : ArrayList<String> = ArrayList()
     private var pdfUri : ArrayList<String> = ArrayList()
     private var imageUri : ArrayList<String> = ArrayList()
-    private var deferredList : ArrayList<Deferred<Unit>> = ArrayList()
+    private var deferredList : ArrayList<Deferred<Any>> = ArrayList()
     var fileName : String = ""
     internal val Background = newFixedThreadPoolContext(2, "bg")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -423,6 +423,13 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 document.close()
+
+                val fileSaveModel = FileSaveModel()
+                fileSaveModel.setFileDest(path)
+                Log.d("save merge pdf","file location")
+                launch {
+                    AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
+                }
             }
             job.await()
             deferredList.add(job)

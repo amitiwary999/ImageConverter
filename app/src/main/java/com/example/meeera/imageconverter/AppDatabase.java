@@ -7,6 +7,7 @@ import android.arch.persistence.room.RoomDatabase;
 public abstract class AppDatabase extends RoomDatabase{
 
     private static AppDatabase appDatabaseInstance;
+    public abstract FileSaveRepository fileSaveRepository();
 
     public void initInstance(Application application){
         if(appDatabaseInstance == null) {
