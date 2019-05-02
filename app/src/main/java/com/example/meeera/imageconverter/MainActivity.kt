@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private var imageUri : ArrayList<String> = ArrayList()
     private var deferredList : ArrayList<Deferred<Any>> = ArrayList()
     var fileName : String = ""
+    var fileLocation: String = ""
     internal val Background = newFixedThreadPoolContext(2, "bg")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -402,36 +403,41 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
 
         GlobalScope.async(Dispatchers.Main){
-            val job = async(Dispatchers.Default){
-                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-                val storageDir = File(path)
-                if(!storageDir.exists()) {
-                    storageDir.mkdirs()
-                }
-                val storeFileName = fileName+".pdf"
-                val file = File(storageDir, storeFileName)
-                val document = Document()
-                val fileOutStream = FileOutputStream(file)
-                val copy = PdfCopy(document, fileOutStream)
-                document.open()
-                var n = 0
-                for(i in 0 until pdfUri.size){
-                    val pr = PdfReader(pdfUri.get(i))
-                    n = pr.numberOfPages
-                    for (page in 1 until n+1){
-                        copy.addPage(copy.getImportedPage(pr, page))
-                    }
-                }
-                document.close()
-
-                val fileSaveModel = FileSaveModel()
-                fileSaveModel.setFileDest(path)
-                Log.d("save merge pdf","file location")
-                val result = saveFile(fileSaveModel)
-                Log.d("save merge pdf","file location result "+result)
+            val job = async(Dispatchers.Default) {
+                async {  generateFileLoc() }.await()
+                async { save() }.await()
             }
+//            val job = async(Dispatchers.Default){
+//                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+//                val storageDir = File(path)
+//                if(!storageDir.exists()) {
+//                    storageDir.mkdirs()
+//                }
+//                val storeFileName = fileName+".pdf"
+//                val file = File(storageDir, storeFileName)
+//                val document = Document()
+//                val fileOutStream = FileOutputStream(file)
+//                val copy = PdfCopy(document, fileOutStream)
+//                document.open()
+//                var n = 0
+//                for(i in 0 until pdfUri.size){
+//                    val pr = PdfReader(pdfUri.get(i))
+//                    n = pr.numberOfPages
+//                    for (page in 1 until n+1){
+//                        copy.addPage(copy.getImportedPage(pr, page))
+//                    }
+//                }
+//                document.close()
+//
+//                val fileSaveModel = FileSaveModel()
+//                fileSaveModel.setFileDest(path)
+//                Log.d("save merge pdf","file location")
+//                val result = saveFile(fileSaveModel)
+//                Log.d("save merge pdf","file location result "+result)
+//            }
             job.await()
             deferredList.add(job)
+            Log.d("dismiss","dialog")
             dialog.dismiss()
         }
     }
@@ -578,7 +584,45 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveFile(fileSaveModel: FileSaveModel): Long = runBlocking(Dispatchers.Default){
+    suspend fun generateFileLoc(): String{
+        Log.d("MainActivity","path start")
+        var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+        val storageDir = File(path)
+        if(!storageDir.exists()) {
+            storageDir.mkdirs()
+        }
+        val storeFileName = fileName+".pdf"
+        val file = File(storageDir, storeFileName)
+        val document = Document()
+        val fileOutStream = FileOutputStream(file)
+        val copy = PdfCopy(document, fileOutStream)
+        document.open()
+        var n = 0
+        for(i in 0 until pdfUri.size){
+            val pr = PdfReader(pdfUri.get(i))
+            n = pr.numberOfPages
+            for (page in 1 until n+1){
+                copy.addPage(copy.getImportedPage(pr, page))
+            }
+        }
+        document.close()
+        fileLocation = path
+        Log.d("MainActivity","path end "+path)
+        return path
+    }
+
+    suspend fun save(): Long{
+        Log.d("MainActivity","save file start "+fileLocation)
+        val fileSaveModel = FileSaveModel()
+        fileSaveModel.setFileDest(fileLocation)
+
+        val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
+        Log.d("MainActivity","save file end "+result)
+        return result
+    }
+
+    private suspend fun saveFile(fileSaveModel: FileSaveModel): Long = runBlocking(Dispatchers.Default){
+        Log.d("result save ","file db called")
         val result = async{ AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel) }.await()
         Log.d("result save ","file db "+result)
         return@runBlocking result
