@@ -36,7 +36,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.BufferedOutputStream
-
+//need to try suspend function
 class MainActivity : AppCompatActivity() {
 
     private val INTENT_REQUEST_GET_IMAGES = 11
@@ -427,9 +427,8 @@ class MainActivity : AppCompatActivity() {
                 val fileSaveModel = FileSaveModel()
                 fileSaveModel.setFileDest(path)
                 Log.d("save merge pdf","file location")
-                launch {
-                    AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
-                }
+                val result = saveFile(fileSaveModel)
+                Log.d("save merge pdf","file location result "+result)
             }
             job.await()
             deferredList.add(job)
@@ -577,6 +576,12 @@ class MainActivity : AppCompatActivity() {
             deferredList.add(job)
             dialog.dismiss()
         }
+    }
+
+    private fun saveFile(fileSaveModel: FileSaveModel): Long = runBlocking(Dispatchers.Default){
+        val result = async{ AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel) }.await()
+        Log.d("result save ","file db "+result)
+        return@runBlocking result
     }
 
     override fun onDestroy() {
