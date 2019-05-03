@@ -404,37 +404,9 @@ class MainActivity : AppCompatActivity() {
 
         GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
-                async {  generateFileLoc() }.await()
-                async { save() }.await()
+                async {  generateMergedPdfFileLocation() }.await()
+                async { saveFileLocationInDb() }.await()
             }
-//            val job = async(Dispatchers.Default){
-//                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-//                val storageDir = File(path)
-//                if(!storageDir.exists()) {
-//                    storageDir.mkdirs()
-//                }
-//                val storeFileName = fileName+".pdf"
-//                val file = File(storageDir, storeFileName)
-//                val document = Document()
-//                val fileOutStream = FileOutputStream(file)
-//                val copy = PdfCopy(document, fileOutStream)
-//                document.open()
-//                var n = 0
-//                for(i in 0 until pdfUri.size){
-//                    val pr = PdfReader(pdfUri.get(i))
-//                    n = pr.numberOfPages
-//                    for (page in 1 until n+1){
-//                        copy.addPage(copy.getImportedPage(pr, page))
-//                    }
-//                }
-//                document.close()
-//
-//                val fileSaveModel = FileSaveModel()
-//                fileSaveModel.setFileDest(path)
-//                Log.d("save merge pdf","file location")
-//                val result = saveFile(fileSaveModel)
-//                Log.d("save merge pdf","file location result "+result)
-//            }
             job.await()
             deferredList.add(job)
             Log.d("dismiss","dialog")
@@ -443,8 +415,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun creatingPdf(fileName:String, uri:ArrayList<String>){
-        var fileName : String = fileName
-        val imageUriInternal : ArrayList<String> = uri
         val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
@@ -452,57 +422,21 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
         dialog.show()
-        GlobalScope.async(Dispatchers.Main) {
-            val job = async(Dispatchers.Default){
-                val path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
-                val folder = File(path)
-                if(!folder.exists()){
-                    val success = folder.mkdir()
-                    if(!success){
-                        Toast.makeText(baseContext, " can't create file", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                fileName = fileName + ".pdf"
-                val storePath = File(folder, fileName)
-
-                val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
-                val documentRect = document.pageSize
-                var writer = PdfWriter.getInstance(document, FileOutputStream(storePath))
-                document.open()
-                try {
-                    for (i in 0 until imageUriInternal.size ) {
-                        val bmp = MediaStore.Images.Media.getBitmap(baseContext.contentResolver,
-                                Uri.fromFile(File(imageUriInternal[i])))
-                        bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
-                        val image = Image.getInstance(imageUriInternal[i])
-                        if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
-                            image.scaleAbsolute(documentRect.width, documentRect.height)
-                        } else {
-                            image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
-                        }
-                        image.setAbsolutePosition((documentRect.width - image.scaledWidth) / 2, (documentRect.height - image.scaledHeight) / 2)
-                        image.border = Image.BOX
-                        image.borderWidth = 15f
-                        document.add(image)
-                        document.newPage()
-                    }
-                    document.close()
-                } catch (e:Exception){
-                    e.printStackTrace()
-                    document.close()
-                }
+        GlobalScope.async(Dispatchers.Main){
+            val job = async(Dispatchers.Default) {
+                async {  convertImageToPdf(fileName, uri) }.await()
+                async { saveFileLocationInDb() }.await()
             }
             job.await()
             deferredList.add(job)
-            dialog.dismiss()
             imageUri.clear()
             pdfUri.clear()
+            Log.d("dismiss","dialog")
+            dialog.dismiss()
         }
     }
 
     private fun creatingDocPdf(fileName:String, uri:ArrayList<String>){
-        val fileName : String = fileName
-        val imageUri : ArrayList<String> = uri
         val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
@@ -510,35 +444,22 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
         dialog.show()
-        GlobalScope.async(Dispatchers.Main) {
+
+        GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
-                var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
-                path = path + fileName + ".pdf"
-                val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
-                var writer = PdfWriter.getInstance(document, FileOutputStream(path))
-                document.open()
-                try {
-                    for(i in 0 until imageUri.size){
-                        document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]), "UTF-8")))
-                        document.newPage()
-                    }
-                    document.close()
-                }catch(e : Exception){
-                    e.printStackTrace()
-                    document.close()
-                }
+                async {  convertDocToPdf(fileName, uri) }.await()
+                async { saveFileLocationInDb() }.await()
             }
             job.await()
             deferredList.add(job)
-            dialog.dismiss()
-            docUri.clear()
             tempDocUri.clear()
+            docUri.clear()
+            Log.d("dismiss","dialog")
+            dialog.dismiss()
         }
     }
 
     private fun creatingPdfImg(fileName:String, pdfUri:ArrayList<String>){
-        val fileName : String = fileName
-        val pdfUri : ArrayList<String> = pdfUri
         val builder : MaterialDialog.Builder  = MaterialDialog.Builder(this)
                 .title("please wait")
                 .content("Creating File")
@@ -547,44 +468,19 @@ class MainActivity : AppCompatActivity() {
         val dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        GlobalScope.async(Dispatchers.Main) {
-            val job = async(Dispatchers.Default){
-                val path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
-                val storageDir = File(path)
-                if(!storageDir.exists()) {
-                    storageDir.mkdirs()
-                }
-
-                for (i in 0 until pdfUri.size){
-                    val file = File(pdfUri[i])
-                    val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-                    val pdfiumCore = PdfiumCore(baseContext)
-                    val pdfDocument = pdfiumCore.newDocument(fileDescriptor)
-                    for (page in 0 until pdfiumCore.getPageCount(pdfDocument)) {
-                        val pathFile = File(path, fileName + page + ".png")
-                        pdfiumCore.openPage(pdfDocument, page)
-                        val width = pdfiumCore.getPageWidthPoint(pdfDocument, page)
-                        val height = pdfiumCore.getPageHeightPoint(pdfDocument, page)
-                        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                        pdfiumCore.renderPageBitmap(pdfDocument, bitmap, page, 0, 0, width, height)
-                        val out = FileOutputStream(pathFile)
-                        val bos = BufferedOutputStream(out)
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
-                        Log.d("amit1", "bitmap " + bitmap)
-                        bos.flush()
-                        bos.close()
-                    }
-                    pdfiumCore.closeDocument(pdfDocument)
-                    fileDescriptor.close()
-                }
+        GlobalScope.async(Dispatchers.Main){
+            val job = async(Dispatchers.Default) {
+                async {  convertPdfToImg(fileName, pdfUri) }.await()
+                async { saveFileLocationInDb() }.await()
             }
             job.await()
             deferredList.add(job)
+            Log.d("dismiss","dialog")
             dialog.dismiss()
         }
     }
 
-    suspend fun generateFileLoc(): String{
+    suspend fun generateMergedPdfFileLocation(): String{
         Log.d("MainActivity","path start")
         var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
         val storageDir = File(path)
@@ -611,7 +507,110 @@ class MainActivity : AppCompatActivity() {
         return path
     }
 
-    suspend fun save(): Long{
+    suspend fun convertImageToPdf(pFileName: String, uri: ArrayList<String>): String{
+        var fileName = pFileName
+        val imageUriInternal : ArrayList<String> = uri
+        val path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+        val folder = File(path)
+        if(!folder.exists()){
+            val success = folder.mkdir()
+            if(!success){
+                Toast.makeText(baseContext, " can't create file", Toast.LENGTH_SHORT).show()
+            }
+        }
+        fileName = fileName + ".pdf"
+        val storePath = File(folder, fileName)
+
+        val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+        val documentRect = document.pageSize
+        var writer = PdfWriter.getInstance(document, FileOutputStream(storePath))
+        document.open()
+        try {
+            for (i in 0 until imageUriInternal.size ) {
+                val bmp = MediaStore.Images.Media.getBitmap(baseContext.contentResolver,
+                        Uri.fromFile(File(imageUriInternal[i])))
+                bmp.compress(Bitmap.CompressFormat.PNG, 70, ByteArrayOutputStream())
+                val image = Image.getInstance(imageUriInternal[i])
+                if (bmp.width > documentRect.width || bmp.height > documentRect.height) {
+                    image.scaleAbsolute(documentRect.width, documentRect.height)
+                } else {
+                    image.scaleAbsolute(bmp.width.toFloat(), bmp.height.toFloat())
+                }
+                image.setAbsolutePosition((documentRect.width - image.scaledWidth) / 2, (documentRect.height - image.scaledHeight) / 2)
+                image.border = Image.BOX
+                image.borderWidth = 15f
+                document.add(image)
+                document.newPage()
+            }
+            document.close()
+        } catch (e:Exception){
+            e.printStackTrace()
+            document.close()
+        }
+        fileLocation = storePath.absolutePath
+        return storePath.absolutePath
+    }
+
+    suspend fun convertDocToPdf(pFileName: String, uri: ArrayList<String>): String{
+        val fileName : String = fileName
+        val imageUri : ArrayList<String> = uri
+        var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
+        path = path + fileName + ".pdf"
+        val document = Document(PageSize.A4, 35f, 35f, 50f, 35f)
+        var writer = PdfWriter.getInstance(document, FileOutputStream(path))
+        document.open()
+        try {
+            for(i in 0 until imageUri.size){
+                document.add(Paragraph(org.apache.commons.io.FileUtils.readFileToString(File(imageUri[i]), "UTF-8")))
+                document.newPage()
+            }
+            document.close()
+        }catch(e : Exception){
+            e.printStackTrace()
+            document.close()
+        }
+        fileLocation = path
+        return path
+    }
+
+    suspend fun convertPdfToImg(pFileName: String, uri: ArrayList<String>) : String{
+
+        val fileName : String = pFileName
+        val pdfUri : ArrayList<String> = uri
+
+        val path : String = Environment.getExternalStorageDirectory().absolutePath+"/ImagePdf"
+        val storageDir = File(path)
+        if(!storageDir.exists()) {
+            storageDir.mkdirs()
+        }
+
+        for (i in 0 until pdfUri.size){
+            val file = File(pdfUri[i])
+            val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            val pdfiumCore = PdfiumCore(baseContext)
+            val pdfDocument = pdfiumCore.newDocument(fileDescriptor)
+            for (page in 0 until pdfiumCore.getPageCount(pdfDocument)) {
+                val pathFile = File(path, fileName + page + ".png")
+                pdfiumCore.openPage(pdfDocument, page)
+                val width = pdfiumCore.getPageWidthPoint(pdfDocument, page)
+                val height = pdfiumCore.getPageHeightPoint(pdfDocument, page)
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                pdfiumCore.renderPageBitmap(pdfDocument, bitmap, page, 0, 0, width, height)
+                val out = FileOutputStream(pathFile)
+                val bos = BufferedOutputStream(out)
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, bos)
+                Log.d("amit1", "bitmap " + bitmap)
+                bos.flush()
+                bos.close()
+            }
+            pdfiumCore.closeDocument(pdfDocument)
+            fileDescriptor.close()
+        }
+        fileLocation = path
+        return path
+    }
+
+    suspend fun saveFileLocationInDb(): Long{
         Log.d("MainActivity","save file start "+fileLocation)
         val fileSaveModel = FileSaveModel()
         fileSaveModel.setFileDest(fileLocation)
@@ -619,13 +618,6 @@ class MainActivity : AppCompatActivity() {
         val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
         Log.d("MainActivity","save file end "+result)
         return result
-    }
-
-    private suspend fun saveFile(fileSaveModel: FileSaveModel): Long = runBlocking(Dispatchers.Default){
-        Log.d("result save ","file db called")
-        val result = async{ AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel) }.await()
-        Log.d("result save ","file db "+result)
-        return@runBlocking result
     }
 
     override fun onDestroy() {
