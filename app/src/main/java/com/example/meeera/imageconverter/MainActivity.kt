@@ -402,7 +402,7 @@ class MainActivity : AppCompatActivity() {
         val dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        GlobalScope.async(Dispatchers.Main){
+        val job = GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
                 async {  generateMergedPdfFileLocation() }.await()
                 async { saveFileLocationInDb() }.await()
@@ -502,8 +502,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
         document.close()
-        fileLocation = path
-        Log.d("MainActivity","path end "+path)
+        fileLocation = file.path
+        Log.d("MainActivity","path end "+fileLocation)
         return path
     }
 
