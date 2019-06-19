@@ -10,13 +10,13 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.*
-import android.support.v7.app.AppCompatActivity
 import android.provider.MediaStore
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
-import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.afollestad.materialdialogs.MaterialDialog
 import com.gun0912.tedpicker.ImagePickerActivity
 import com.itextpdf.text.Document
@@ -405,7 +405,7 @@ class MainActivity : AppCompatActivity() {
         val job = GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
                 async {  generateMergedPdfFileLocation() }.await()
-                async { saveFileLocationInDb() }.await()
+                saveFileLocationInDb()
             }
             job.await()
             deferredList.add(job)
