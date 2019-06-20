@@ -404,7 +404,7 @@ class MainActivity : AppCompatActivity() {
 
         val job = GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
-                async {  generateMergedPdfFileLocation() }.await()
+                generateMergedPdfFileLocation()
                 saveFileLocationInDb()
             }
             job.await()
@@ -424,8 +424,8 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
         GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
-                async {  convertImageToPdf(fileName, uri) }.await()
-                async { saveFileLocationInDb() }.await()
+                convertImageToPdf(fileName, uri)
+                saveFileLocationInDb()
             }
             job.await()
             deferredList.add(job)
@@ -447,8 +447,8 @@ class MainActivity : AppCompatActivity() {
 
         GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
-                async {  convertDocToPdf(fileName, uri) }.await()
-                async { saveFileLocationInDb() }.await()
+                convertDocToPdf(fileName, uri)
+                saveFileLocationInDb()
             }
             job.await()
             deferredList.add(job)
@@ -470,8 +470,8 @@ class MainActivity : AppCompatActivity() {
 
         GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
-                async {  convertPdfToImg(fileName, pdfUri) }.await()
-                async { saveFileLocationInDb() }.await()
+                convertPdfToImg(fileName, pdfUri)
+                saveFileLocationInDb()
             }
             job.await()
             deferredList.add(job)
@@ -480,7 +480,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    suspend fun generateMergedPdfFileLocation(): String{
+    fun generateMergedPdfFileLocation(): String{
         Log.d("MainActivity","path start")
         var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
         val storageDir = File(path)
@@ -507,7 +507,7 @@ class MainActivity : AppCompatActivity() {
         return path
     }
 
-    suspend fun convertImageToPdf(pFileName: String, uri: ArrayList<String>): String{
+    fun convertImageToPdf(pFileName: String, uri: ArrayList<String>): String{
         var fileName = pFileName
         val imageUriInternal : ArrayList<String> = uri
         val path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
@@ -551,7 +551,7 @@ class MainActivity : AppCompatActivity() {
         return storePath.absolutePath
     }
 
-    suspend fun convertDocToPdf(pFileName: String, uri: ArrayList<String>): String{
+    fun convertDocToPdf(pFileName: String, uri: ArrayList<String>): String{
         val fileName : String = fileName
         val imageUri : ArrayList<String> = uri
         var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
@@ -573,7 +573,7 @@ class MainActivity : AppCompatActivity() {
         return path
     }
 
-    suspend fun convertPdfToImg(pFileName: String, uri: ArrayList<String>) : String{
+    fun convertPdfToImg(pFileName: String, uri: ArrayList<String>) : String{
 
         val fileName : String = pFileName
         val pdfUri : ArrayList<String> = uri
