@@ -400,17 +400,25 @@ class MainActivity : AppCompatActivity() {
                 .cancelable(false)
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
-        dialog.show()
+      //  dialog.show()
 
-        val job = GlobalScope.async(Dispatchers.Main){
-            val job = async(Dispatchers.Default) {
-                generateMergedPdfFileLocation()
-                saveFileLocationInDb()
-            }
-            job.await()
-            deferredList.add(job)
-            Log.d("dismiss","dialog")
-            dialog.dismiss()
+//        val job = GlobalScope.async(Dispatchers.Main){
+//            val job = async(Dispatchers.Default) {
+//                generateMergedPdfFileLocation()
+//                saveFileLocationInDb()
+//            }
+//            job.await()
+//            deferredList.add(job)
+//            Log.d("dismiss","dialog")
+//            dialog.dismiss()
+//        }
+//NOTE async starts in parallel we use await to wait for their result. if we need sequental just call function in sequential manner or if needed use withcontext  to switch coroutine context
+        val job = GlobalScope.launch(Dispatchers.IO) {
+            Log.d("MainActivity","enter start")
+            gMergedPdf()
+            saveLoc() //suspended fun room db call
+            Log.d("dismiss","dialog "+Thread.currentThread().name)
+           // dialog.dismiss()
         }
     }
 
@@ -478,6 +486,33 @@ class MainActivity : AppCompatActivity() {
             Log.d("dismiss","dialog")
             dialog.dismiss()
         }
+    }
+
+    fun gMergedPdf(): String{
+        Log.d("MainActivity","path start "+Thread.currentThread().name)
+        var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+        val storageDir = File(path)
+        if(!storageDir.exists()) {
+            storageDir.mkdirs()
+        }
+        val storeFileName = fileName+".pdf"
+        val file = File(storageDir, storeFileName)
+        val document = Document()
+        val fileOutStream = FileOutputStream(file)
+        val copy = PdfCopy(document, fileOutStream)
+        document.open()
+        var n = 0
+        for(i in 0 until pdfUri.size){
+            val pr = PdfReader(pdfUri.get(i))
+            n = pr.numberOfPages
+            for (page in 1 until n+1){
+                copy.addPage(copy.getImportedPage(pr, page))
+            }
+        }
+        document.close()
+        fileLocation = file.path
+        Log.d("MainActivity","path end "+fileLocation)
+        return path
     }
 
     fun generateMergedPdfFileLocation(): String{
@@ -608,6 +643,16 @@ class MainActivity : AppCompatActivity() {
         }
         fileLocation = path
         return path
+    }
+
+    suspend fun saveLoc(): Long{
+        Log.d("MainActivity","save file start "+fileLocation)
+        val fileSaveModel = FileSaveModel()
+        fileSaveModel.setFileDest(fileLocation)
+
+        val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
+        Log.d("MainActivity","save file end "+result)
+        return result
     }
 
     suspend fun saveFileLocationInDb(): Long{
