@@ -488,32 +488,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun gMergedPdf(): String{
-        Log.d("MainActivity","path start "+Thread.currentThread().name)
-        var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-        val storageDir = File(path)
-        if(!storageDir.exists()) {
-            storageDir.mkdirs()
-        }
-        val storeFileName = fileName+".pdf"
-        val file = File(storageDir, storeFileName)
-        val document = Document()
-        val fileOutStream = FileOutputStream(file)
-        val copy = PdfCopy(document, fileOutStream)
-        document.open()
-        var n = 0
-        for(i in 0 until pdfUri.size){
-            val pr = PdfReader(pdfUri.get(i))
-            n = pr.numberOfPages
-            for (page in 1 until n+1){
-                copy.addPage(copy.getImportedPage(pr, page))
+    suspend fun gMergedPdf(): String = withContext(Dispatchers.IO){
+            Log.d("MainActivity","path start "+Thread.currentThread().name)
+            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
+            val storageDir = File(path)
+            if(!storageDir.exists()) {
+                storageDir.mkdirs()
             }
+            val storeFileName = fileName+".pdf"
+            val file = File(storageDir, storeFileName)
+            val document = Document()
+            val fileOutStream = FileOutputStream(file)
+            val copy = PdfCopy(document, fileOutStream)
+            document.open()
+            var n = 0
+            for(i in 0 until pdfUri.size){
+                val pr = PdfReader(pdfUri.get(i))
+                n = pr.numberOfPages
+                for (page in 1 until n+1){
+                    copy.addPage(copy.getImportedPage(pr, page))
+                }
+            }
+            document.close()
+            fileLocation = file.path
+            Log.d("MainActivity","path end "+fileLocation)
+            path
         }
-        document.close()
-        fileLocation = file.path
-        Log.d("MainActivity","path end "+fileLocation)
-        return path
-    }
 
     fun generateMergedPdfFileLocation(): String{
         Log.d("MainActivity","path start")
@@ -648,17 +648,19 @@ class MainActivity : AppCompatActivity() {
     suspend fun saveLoc(): Long{
         Log.d("MainActivity","save file start "+fileLocation)
         val fileSaveModel = FileSaveModel()
-        fileSaveModel.setFileDest(fileLocation)
+        fileSaveModel.fileDest = fileLocation
 
         val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
         Log.d("MainActivity","save file end "+result)
+        val res = AppDatabase.getAppDatabaseInstance().fileSaveRepository().set(fileLocation, null)
+        Log.d("MainActivity","save file end null "+res)
         return result
     }
 
     suspend fun saveFileLocationInDb(): Long{
         Log.d("MainActivity","save file start "+fileLocation)
         val fileSaveModel = FileSaveModel()
-        fileSaveModel.setFileDest(fileLocation)
+        fileSaveModel.fileDest = fileLocation
 
         val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
         Log.d("MainActivity","save file end "+result)

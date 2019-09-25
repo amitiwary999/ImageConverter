@@ -7,7 +7,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
 
-@Database(entities = {FileSaveModel.class}, version = 1)
+@Database(entities = {FileSaveModel.class}, version = 2)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase appDatabaseInstance;
