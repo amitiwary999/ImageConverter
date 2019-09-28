@@ -400,7 +400,7 @@ class MainActivity : AppCompatActivity() {
                 .cancelable(false)
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
-      //  dialog.show()
+        dialog.show()
 
 //        val job = GlobalScope.async(Dispatchers.Main){
 //            val job = async(Dispatchers.Default) {
@@ -418,7 +418,9 @@ class MainActivity : AppCompatActivity() {
             gMergedPdf()
             saveLoc() //suspended fun room db call
             Log.d("dismiss","dialog "+Thread.currentThread().name)
-           // dialog.dismiss()
+            withContext(Dispatchers.Main) {
+                dialog.dismiss()
+            }
         }
     }
 
@@ -430,17 +432,16 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
         dialog.show()
-        GlobalScope.async(Dispatchers.Main){
-            val job = async(Dispatchers.Default) {
-                convertImageToPdf(fileName, uri)
-                saveFileLocationInDb()
-            }
-            job.await()
-            deferredList.add(job)
+        val job = GlobalScope.launch(Dispatchers.IO) {
+            Log.d("MainActivity","enter start")
+            convertImageToPdf(fileName, uri)
+            saveFileLocationInDb() //suspended fun room db call
             imageUri.clear()
             pdfUri.clear()
-            Log.d("dismiss","dialog")
-            dialog.dismiss()
+            Log.d("dismiss","dialog "+Thread.currentThread().name)
+            withContext(Dispatchers.Main) {
+                dialog.dismiss()
+            }
         }
     }
 
@@ -453,17 +454,16 @@ class MainActivity : AppCompatActivity() {
         val dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        GlobalScope.async(Dispatchers.Main){
-            val job = async(Dispatchers.Default) {
-                convertDocToPdf(fileName, uri)
-                saveFileLocationInDb()
-            }
-            job.await()
-            deferredList.add(job)
+        val job = GlobalScope.launch(Dispatchers.IO) {
+            Log.d("MainActivity","enter start")
+            convertDocToPdf(fileName, uri)
+            saveFileLocationInDb() //suspended fun room db call
             tempDocUri.clear()
             docUri.clear()
-            Log.d("dismiss","dialog")
-            dialog.dismiss()
+            Log.d("dismiss","dialog "+Thread.currentThread().name)
+            withContext(Dispatchers.Main) {
+                dialog.dismiss()
+            }
         }
     }
 
@@ -488,35 +488,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    suspend fun gMergedPdf(): String = withContext(Dispatchers.IO){
-            Log.d("MainActivity","path start "+Thread.currentThread().name)
-            var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
-            val storageDir = File(path)
-            if(!storageDir.exists()) {
-                storageDir.mkdirs()
-            }
-            val storeFileName = fileName+".pdf"
-            val file = File(storageDir, storeFileName)
-            val document = Document()
-            val fileOutStream = FileOutputStream(file)
-            val copy = PdfCopy(document, fileOutStream)
-            document.open()
-            var n = 0
-            for(i in 0 until pdfUri.size){
-                val pr = PdfReader(pdfUri.get(i))
-                n = pr.numberOfPages
-                for (page in 1 until n+1){
-                    copy.addPage(copy.getImportedPage(pr, page))
-                }
-            }
-            document.close()
-            fileLocation = file.path
-            Log.d("MainActivity","path end "+fileLocation)
-            path
-        }
-
-    fun generateMergedPdfFileLocation(): String{
-        Log.d("MainActivity","path start")
+    fun gMergedPdf(): String{
+        Log.d("MainActivity","path start "+Thread.currentThread().name)
         var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
         val storageDir = File(path)
         if(!storageDir.exists()) {
@@ -652,8 +625,6 @@ class MainActivity : AppCompatActivity() {
 
         val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
         Log.d("MainActivity","save file end "+result)
-        val res = AppDatabase.getAppDatabaseInstance().fileSaveRepository().set(fileLocation, null)
-        Log.d("MainActivity","save file end null "+res)
         return result
     }
 
