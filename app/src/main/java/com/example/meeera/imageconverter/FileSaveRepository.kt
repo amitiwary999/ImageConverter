@@ -8,13 +8,6 @@ import androidx.room.Transaction
 
 @Dao
 interface FileSaveRepository {
-
-    @Query("SELECT * FROM FileSaveModel")
-    suspend fun savedFiles(): List<FileSaveModel>
-
     @Insert
     suspend fun save(fileSaveModel: FileSaveModel): Long
-
-    @Query("UPDATE FileSaveModel SET fileDest = :dest WHERE id <> :id")
-    suspend fun set(dest: String?, id: Int?): Int
 }

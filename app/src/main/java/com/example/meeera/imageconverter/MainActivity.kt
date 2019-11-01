@@ -53,7 +53,6 @@ class MainActivity : AppCompatActivity() {
     private var deferredList : ArrayList<Deferred<Any>> = ArrayList()
     var fileName : String = ""
     var fileLocation: String = ""
-    internal val Background = newFixedThreadPoolContext(2, "bg")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_new)
@@ -261,7 +260,9 @@ class MainActivity : AppCompatActivity() {
             tempUri.clear()
             val imageUri: ArrayList<Uri> = data!!.getParcelableArrayListExtra(ImagePickerActivity.EXTRA_IMAGE_URIS)
             for (i in imageUri.indices) {
-                tempUri.add(imageUri[i].path)
+                imageUri[i].path?.let {
+                    tempUri.add(it)
+                }
             }
             Toast.makeText(this, "Image Added", Toast.LENGTH_SHORT).show()
         }
