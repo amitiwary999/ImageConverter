@@ -10,13 +10,13 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.*
-import android.support.v7.app.AppCompatActivity
 import android.provider.MediaStore
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
-import android.support.v7.app.AlertDialog
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.afollestad.materialdialogs.MaterialDialog
 import com.gun0912.tedpicker.ImagePickerActivity
 import com.itextpdf.text.Document
@@ -53,7 +53,6 @@ class MainActivity : AppCompatActivity() {
     private var deferredList : ArrayList<Deferred<Any>> = ArrayList()
     var fileName : String = ""
     var fileLocation: String = ""
-    internal val Background = newFixedThreadPoolContext(2, "bg")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_new)
@@ -261,7 +260,9 @@ class MainActivity : AppCompatActivity() {
             tempUri.clear()
             val imageUri: ArrayList<Uri> = data!!.getParcelableArrayListExtra(ImagePickerActivity.EXTRA_IMAGE_URIS)
             for (i in imageUri.indices) {
-                tempUri.add(imageUri[i].path)
+                imageUri[i].path?.let {
+                    tempUri.add(it)
+                }
             }
             Toast.makeText(this, "Image Added", Toast.LENGTH_SHORT).show()
         }
@@ -402,15 +403,25 @@ class MainActivity : AppCompatActivity() {
         val dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        GlobalScope.async(Dispatchers.Main){
-            val job = async(Dispatchers.Default) {
-                async {  generateMergedPdfFileLocation() }.await()
-                async { saveFileLocationInDb() }.await()
+//        val job = GlobalScope.async(Dispatchers.Main){
+//            val job = async(Dispatchers.Default) {
+//                generateMergedPdfFileLocation()
+//                saveFileLocationInDb()
+//            }
+//            job.await()
+//            deferredList.add(job)
+//            Log.d("dismiss","dialog")
+//            dialog.dismiss()
+//        }
+//NOTE async starts in parallel we use await to wait for their result. if we need sequental just call function in sequential manner or if needed use withcontext  to switch coroutine context
+        val job = GlobalScope.launch(Dispatchers.IO) {
+            Log.d("MainActivity","enter start")
+            gMergedPdf()
+            saveLoc() //suspended fun room db call
+            Log.d("dismiss","dialog "+Thread.currentThread().name)
+            withContext(Dispatchers.Main) {
+                dialog.dismiss()
             }
-            job.await()
-            deferredList.add(job)
-            Log.d("dismiss","dialog")
-            dialog.dismiss()
         }
     }
 
@@ -422,17 +433,16 @@ class MainActivity : AppCompatActivity() {
                 .progress(true, 0)
         val dialog : MaterialDialog = builder.build()
         dialog.show()
-        GlobalScope.async(Dispatchers.Main){
-            val job = async(Dispatchers.Default) {
-                async {  convertImageToPdf(fileName, uri) }.await()
-                async { saveFileLocationInDb() }.await()
-            }
-            job.await()
-            deferredList.add(job)
+        val job = GlobalScope.launch(Dispatchers.IO) {
+            Log.d("MainActivity","enter start")
+            convertImageToPdf(fileName, uri)
+            saveFileLocationInDb() //suspended fun room db call
             imageUri.clear()
             pdfUri.clear()
-            Log.d("dismiss","dialog")
-            dialog.dismiss()
+            Log.d("dismiss","dialog "+Thread.currentThread().name)
+            withContext(Dispatchers.Main) {
+                dialog.dismiss()
+            }
         }
     }
 
@@ -445,17 +455,16 @@ class MainActivity : AppCompatActivity() {
         val dialog : MaterialDialog = builder.build()
         dialog.show()
 
-        GlobalScope.async(Dispatchers.Main){
-            val job = async(Dispatchers.Default) {
-                async {  convertDocToPdf(fileName, uri) }.await()
-                async { saveFileLocationInDb() }.await()
-            }
-            job.await()
-            deferredList.add(job)
+        val job = GlobalScope.launch(Dispatchers.IO) {
+            Log.d("MainActivity","enter start")
+            convertDocToPdf(fileName, uri)
+            saveFileLocationInDb() //suspended fun room db call
             tempDocUri.clear()
             docUri.clear()
-            Log.d("dismiss","dialog")
-            dialog.dismiss()
+            Log.d("dismiss","dialog "+Thread.currentThread().name)
+            withContext(Dispatchers.Main) {
+                dialog.dismiss()
+            }
         }
     }
 
@@ -470,8 +479,8 @@ class MainActivity : AppCompatActivity() {
 
         GlobalScope.async(Dispatchers.Main){
             val job = async(Dispatchers.Default) {
-                async {  convertPdfToImg(fileName, pdfUri) }.await()
-                async { saveFileLocationInDb() }.await()
+                convertPdfToImg(fileName, pdfUri)
+                saveFileLocationInDb()
             }
             job.await()
             deferredList.add(job)
@@ -480,8 +489,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    suspend fun generateMergedPdfFileLocation(): String{
-        Log.d("MainActivity","path start")
+    fun gMergedPdf(): String{
+        Log.d("MainActivity","path start "+Thread.currentThread().name)
         var path : String = Environment.getExternalStorageDirectory().absolutePath+"/Mergepdf"
         val storageDir = File(path)
         if(!storageDir.exists()) {
@@ -502,12 +511,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
         document.close()
-        fileLocation = path
-        Log.d("MainActivity","path end "+path)
+        fileLocation = file.path
+        Log.d("MainActivity","path end "+fileLocation)
         return path
     }
 
-    suspend fun convertImageToPdf(pFileName: String, uri: ArrayList<String>): String{
+    fun convertImageToPdf(pFileName: String, uri: ArrayList<String>): String{
         var fileName = pFileName
         val imageUriInternal : ArrayList<String> = uri
         val path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
@@ -551,7 +560,7 @@ class MainActivity : AppCompatActivity() {
         return storePath.absolutePath
     }
 
-    suspend fun convertDocToPdf(pFileName: String, uri: ArrayList<String>): String{
+    fun convertDocToPdf(pFileName: String, uri: ArrayList<String>): String{
         val fileName : String = fileName
         val imageUri : ArrayList<String> = uri
         var path : String = Environment.getExternalStorageDirectory().absolutePath+"/PDFfiles"
@@ -573,7 +582,7 @@ class MainActivity : AppCompatActivity() {
         return path
     }
 
-    suspend fun convertPdfToImg(pFileName: String, uri: ArrayList<String>) : String{
+    fun convertPdfToImg(pFileName: String, uri: ArrayList<String>) : String{
 
         val fileName : String = pFileName
         val pdfUri : ArrayList<String> = uri
@@ -610,10 +619,20 @@ class MainActivity : AppCompatActivity() {
         return path
     }
 
+    suspend fun saveLoc(): Long{
+        Log.d("MainActivity","save file start "+fileLocation)
+        val fileSaveModel = FileSaveModel()
+        fileSaveModel.fileDest = fileLocation
+
+        val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
+        Log.d("MainActivity","save file end "+result)
+        return result
+    }
+
     suspend fun saveFileLocationInDb(): Long{
         Log.d("MainActivity","save file start "+fileLocation)
         val fileSaveModel = FileSaveModel()
-        fileSaveModel.setFileDest(fileLocation)
+        fileSaveModel.fileDest = fileLocation
 
         val result = AppDatabase.getAppDatabaseInstance().fileSaveRepository().save(fileSaveModel)
         Log.d("MainActivity","save file end "+result)
